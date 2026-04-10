@@ -30,9 +30,21 @@ const STATIC = {
     "隐私政策": "Privacy Policy",
     "切换夜间": "Dark mode",
     "切换日间": "Light mode",
+    "← 返回": "← Back",
+    "首页": "Home",
+    "全部": "All",
+    // Hero stats
+    "工具": "Tools",
+    "隐私安全": "Private",
+    "支持多文件": "Batch",
+    "免费使用 · 无需登录 · 本地处理保护隐私": "Free · No login · Private processing",
+    "个工具": " tools",
+    // Upload zone
+    "直接拖入文件，自动识别并推荐工具": "Drop a file — we'll detect the type and suggest the right tool",
+    "支持 JPG、PNG、WebP、HEIC、GIF、PDF 等格式": "Supports JPG, PNG, WebP, HEIC, GIF, PDF and more",
+    "选择文件": "Browse",
     // Dropzone
     "拖拽文件到这里，或点击选择文件": "Drop files here, or click to browse",
-    "选择文件": "Browse files",
     // Queue
     "已选文件": "Selected files",
     "还没有选择文件": "No files selected",
@@ -127,9 +139,21 @@ const STATIC = {
     "隐私政策": "プライバシーポリシー",
     "切换夜间": "ダークモード",
     "切换日间": "ライトモード",
+    "← 返回": "← 戻る",
+    "首页": "ホーム",
+    "全部": "すべて",
+    // Hero stats
+    "工具": "ツール",
+    "隐私安全": "プライベート",
+    "支持多文件": "バッチ処理",
+    "免费使用 · 无需登录 · 本地处理保护隐私": "無料・ログイン不要・プライベート処理",
+    "个工具": " 個のツール",
+    // Upload zone
+    "直接拖入文件，自动识别并推荐工具": "ファイルをドロップ — 種類を検出してツールを提案",
+    "支持 JPG、PNG、WebP、HEIC、GIF、PDF 等格式": "JPG、PNG、WebP、HEIC、GIF、PDF などに対応",
+    "选择文件": "ファイルを選択",
     // Dropzone
     "拖拽文件到这里，或点击选择文件": "ここにファイルをドロップ、またはクリックで選択",
-    "选择文件": "ファイルを選択",
     // Queue
     "已选文件": "選択済みファイル",
     "还没有选择文件": "ファイルが選択されていません",
@@ -247,44 +271,66 @@ const I18N = {
 
   _applyStatic(lang) {
     const dict = STATIC[lang] || {};
+    if (!Object.keys(dict).length) return;
+
+    // 1. Explicit data-i18n attributes
     document.querySelectorAll("[data-i18n]").forEach((el) => {
-      const key = el.dataset.i18n;
-      if (dict[key]) el.textContent = dict[key];
+      if (dict[el.dataset.i18n]) el.textContent = dict[el.dataset.i18n];
     });
-    // Elements whose textContent is a direct dict key
-    document.querySelectorAll("[data-i18n-text]").forEach((el) => {
-      const src = el.textContent.trim();
-      if (dict[src]) el.textContent = dict[src];
-    });
+
+    // 2. Walk every text node in <body>: if its full trimmed content matches a
+    //    dict key exactly, replace it. This covers nav links, buttons, footer
+    //    links, sidebar labels, etc. without needing data-i18n attributes.
+    const SKIP = new Set(["script","style","pre","code","textarea","input","option"]);
+    const walk = (node) => {
+      if (node.nodeType === 3 /* TEXT_NODE */) {
+        const t = node.textContent.trim();
+        if (t && dict[t]) {
+          node.textContent = node.textContent.replace(t, dict[t]);
+        }
+      } else if (node.nodeType === 1 /* ELEMENT_NODE */) {
+        if (!SKIP.has(node.tagName.toLowerCase())) {
+          node.childNodes.forEach(walk);
+        }
+      }
+    };
+    if (document.body) walk(document.body);
   },
 
   async _applyDynamic(lang) {
     const cacheKey = `i18n:${location.pathname}:${lang}`;
     let map = this._loadCache(cacheKey);
     const selectors = [
-      ".tool-card h3",
-      ".tool-card p",
-      ".tool-card-meta span",
-      ".hero-copy",
-      ".section-copy",
-      ".tool-subtitle",
-      ".scenario-copy p",
-      ".scenario-copy h3",
-      ".section-head p",
-      ".panel-head p",
-      ".hero-panel-head p",
-      ".feature-card h3",
-      ".feature-card p",
-      ".content-card p",
-      ".content-card h2",
-      ".faq-list h3",
-      ".faq-list p",
-      ".step-list li",
-      ".hero-tags span",
-      ".tool-hero-actions span",
-      ".tool-summary p",
-      ".tool-summary li",
-      ".eyebrow",
+      // Tool cards (new design)
+      ".tool-card-name",
+      ".tool-card-desc",
+      ".tool-card-tags .tag",
+      // Home hero
+      ".hero h1",
+      ".hero-sub",
+      ".hero-badge",
+      ".stat-label",
+      ".stat-num",
+      ".quick-upload-title",
+      ".quick-upload-sub",
+      // Catalog page
+      ".catalog-hero h1",
+      ".catalog-hero p",
+      ".cat-name",
+      // Tool page
+      ".tool-page-header h1",
+      ".tool-page-header p",
+      ".upload-zone-title",
+      ".upload-zone-sub",
+      ".related-name",
+      ".related-desc",
+      ".tool-tips p",
+      ".card-title",
+      // FAQ / steps (tool page extended content)
+      ".faq-item dt",
+      ".faq-item dd",
+      ".step-item",
+      // Fallback
       "[data-i18n-dynamic]",
     ];
     const elements = Array.from(document.querySelectorAll(selectors.join(",")));
