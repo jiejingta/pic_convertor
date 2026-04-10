@@ -375,6 +375,18 @@ const I18N = {
     const edgeLang = lang === "en" ? "en" : lang === "ja" ? "ja" : lang;
     const edgeUrl = `https://edge.microsoft.com/translate/translatetext?from=zh-Hans&to=${edgeLang}&isEnterpriseClient=false`;
 
+    // Edge API may return:
+    //   a) ["translated", "strings"]                — plain array of strings
+    //   b) [{translations:[{text:"...",to:"en"}]}]  — Azure Translator format
+    //   c) [{text:"..."}]                           — simplified object format
+    const extractStrings = (data) => {
+      if (!Array.isArray(data) || !data.length) return null;
+      if (typeof data[0] === "string") return data;
+      if (data[0].translations) return data.map(d => (d.translations[0] || {}).text || d.translations[0] || "");
+      if (typeof data[0].text === "string") return data.map(d => d.text || "");
+      return null;
+    };
+
     // Try direct browser call first (no server load)
     try {
       const resp = await fetch(edgeUrl, {
@@ -382,7 +394,10 @@ const I18N = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(texts),
       });
-      if (resp.ok) return await resp.json();
+      if (resp.ok) {
+        const strings = extractStrings(await resp.json());
+        if (strings) return strings;
+      }
     } catch (_) {
       // CORS blocked — fall through to proxy
     }
@@ -394,7 +409,10 @@ const I18N = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ texts, to: edgeLang }),
       });
-      if (resp.ok) return await resp.json();
+      if (resp.ok) {
+        const strings = extractStrings(await resp.json());
+        if (strings) return strings;
+      }
     } catch (_) {
       // network error
     }
@@ -428,11 +446,18 @@ const I18N = {
   _renderSwitcher() {
     const container = document.getElementById("lang-switcher");
     if (!container) return;
-    container.innerHTML = SUPPORTED.map((l) => {
-      const active = l.code === this.current ? " active" : "";
-      return `<button class="lang-btn${active}" data-lang="${l.code}" aria-label="Switch to ${l.label}">${l.label}</button>`;
-    }).join("");
-    container.querySelectorAll(".lang-btn").forEach((btn) => {
+    const cur = SUPPORTED.find(l => l.code === this.current) || SUPPORTED[0];
+    container.innerHTML =
+      `<button class="lang-cur-btn" aria-haspopup="true" aria-expanded="false">` +
+        `${cur.label}<span class="lang-arrow">▾</span>` +
+      `</button>` +
+      `<div class="lang-drop" role="menu">` +
+        SUPPORTED.map(l =>
+          `<button class="lang-opt${l.code === this.current ? " active" : ""}" ` +
+          `data-lang="${l.code}" role="menuitem">${l.label}</button>`
+        ).join("") +
+      `</div>`;
+    container.querySelectorAll(".lang-opt").forEach(btn => {
       btn.addEventListener("click", () => this.switchTo(btn.dataset.lang));
     });
   },

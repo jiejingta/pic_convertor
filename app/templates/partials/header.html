@@ -24,9 +24,6 @@
     <input type="text" id="header-search-input" placeholder="搜索工具…" autocomplete="off" />
   </div>
   <nav class="header-nav">
-    {% for item in nav_tools %}
-    <a class="nav-btn" href="/zh-CN/{{ item.slug }}">{{ item.nav_title or item.title }}</a>
-    {% endfor %}
     <a class="nav-btn" href="/zh-CN/tools">全部工具</a>
     <div id="lang-switcher" class="lang-switcher"></div>
     <button class="nav-btn icon-btn-sm" data-theme-toggle title="切换主题">🌙</button>

@@ -143,16 +143,38 @@ body.light .tool-header-bar { background: rgba(244,246,251,0.95); }
 .breadcrumb-cur { color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
-/* Lang switcher */
-.lang-switcher { display: flex; gap: 4px; }
-.lang-btn {
-  height: 28px; padding: 0 10px; border-radius: 100px;
+/* Lang switcher — hover dropdown */
+.lang-switcher {
+  position: relative; flex-shrink: 0;
+}
+.lang-cur-btn {
+  height: 28px; padding: 0 10px; border-radius: 6px;
   border: 1px solid var(--border); background: transparent;
   color: var(--muted); font-size: 12px; font-weight: 600;
-  cursor: pointer; transition: all var(--t);
+  cursor: pointer; display: flex; align-items: center; gap: 4px;
+  transition: all var(--t); white-space: nowrap;
 }
-.lang-btn:hover { background: var(--surface); color: var(--text); border-color: var(--border-2); }
-.lang-btn.active { background: var(--accent-glow); color: var(--accent); border-color: rgba(79,124,255,0.3); }
+.lang-cur-btn:hover, .lang-switcher:hover .lang-cur-btn {
+  background: var(--surface); color: var(--text); border-color: var(--border-2);
+}
+.lang-arrow { font-size: 9px; color: var(--muted-2); }
+.lang-drop {
+  display: none;
+  position: absolute; top: calc(100% + 6px); right: 0;
+  background: var(--surface-2); border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  overflow: hidden; min-width: 96px; z-index: 300;
+  flex-direction: column;
+}
+.lang-switcher:hover .lang-drop { display: flex; }
+.lang-opt {
+  width: 100%; padding: 8px 14px; text-align: left;
+  background: none; border: none; color: var(--muted);
+  font-size: 13px; cursor: pointer; transition: all var(--t);
+}
+.lang-opt:hover { background: var(--surface-3); color: var(--text); }
+.lang-opt.active { color: var(--accent); font-weight: 600; }
 
 /* ─── Hero Section (home) ─────────────────────────────────── */
 .hero {
