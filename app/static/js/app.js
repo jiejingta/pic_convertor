@@ -206,10 +206,11 @@ function createQueueItemMarkup(entry) {
 }
 
 function renderQueue(queueList, summaryNode, entries) {
+  const _t = (s) => (window.I18N ? window.I18N.t(s) : s);
   if (!entries.length) {
     queueList.classList.add("empty");
-    queueList.innerHTML = "选择文件后，这里会显示文件名、大小和可否处理。";
-    summaryNode.textContent = "还没有选择文件";
+    queueList.innerHTML = _t("选择文件后，这里会显示文件名、大小和可否处理。");
+    summaryNode.textContent = _t("还没有选择文件");
     return;
   }
   const accepted = entries.filter((item) => item.level !== "error");
@@ -312,16 +313,17 @@ function setResultMessage(node, message, className = "result-card") {
 }
 
 function renderRemoteResult(node, payload) {
-  const archive = payload.archive_url ? `<a class="button primary" href="${payload.archive_url}" download>下载 ZIP</a>` : "";
+  const _t = (s) => (window.I18N ? window.I18N.t(s) : s);
+  const archive = payload.archive_url ? `<a class="button primary" href="${payload.archive_url}" download>${_t("下载 ZIP")}</a>` : "";
   const cards = payload.items
     .map((item) => {
-      const saved = item.saved_bytes ? `<p>节省 ${formatBytes(item.saved_bytes)}</p>` : "";
+      const saved = item.saved_bytes ? `<p>${_t("节省")} ${formatBytes(item.saved_bytes)}</p>` : "";
       const preview = item.preview_url ? `<img src="${item.preview_url}" alt="${item.name}" class="result-preview" />` : `<div class="result-preview"></div>`;
-      return `<article class="result-item">${preview}<div><h3>${item.name}</h3><p>${formatBytes(item.size_bytes)}</p>${saved}<a class="button ghost" href="${item.url}" download>下载文件</a></div></article>`;
+      return `<article class="result-item">${preview}<div><h3>${item.name}</h3><p>${formatBytes(item.size_bytes)}</p>${saved}<a class="button ghost" href="${item.url}" download>${_t("下载文件")}</a></div></article>`;
     })
     .join("");
   node.className = "result-live";
-  node.innerHTML = `<div class="result-toolbar"><p>处理完成，共生成 ${payload.count} 个结果文件。</p>${archive}</div><div class="result-list">${cards}</div>`;
+  node.innerHTML = `<div class="result-toolbar"><p>${_t("处理完成，共生成")} ${payload.count} ${_t("个结果文件。")}</p>${archive}</div><div class="result-list">${cards}</div>`;
 }
 
 async function blobFromCanvas(canvas, mimeType, quality) {
@@ -515,7 +517,8 @@ async function buildPdfForFiles(files, values, outputNameValue) {
 }
 
 async function processLocally(tool, files, values, resultNode) {
-  setResultMessage(resultNode, "正在浏览器中处理，请稍候…");
+  const _t = (s) => (window.I18N ? window.I18N.t(s) : s);
+  setResultMessage(resultNode, _t("正在浏览器中处理，请稍候…"));
   let outputs = [];
 
   if (tool.mode === "image_to_pdf") {
@@ -546,7 +549,8 @@ async function processLocally(tool, files, values, resultNode) {
 }
 
 async function processOnServer(tool, files, values, resultNode) {
-  setResultMessage(resultNode, "正在上传并处理，请稍候…");
+  const _t = (s) => (window.I18N ? window.I18N.t(s) : s);
+  setResultMessage(resultNode, _t("正在上传并处理，请稍候…"));
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
   Object.entries(values).forEach(([key, value]) => formData.append(key, value));
@@ -628,15 +632,16 @@ function attachToolWorkspace(panel) {
       state.localPlan = { local: false, reason: tool.processing_notice };
       renderQueue(queueList, queueSummary, []);
       formHint.textContent = tool.processing_notice;
-      setResultMessage(resultState, "选择文件后会立即显示队列。点击“开始处理”后，这里会展示进度和下载结果。", "result-placeholder");
+      setResultMessage(resultState, (window.I18N ? window.I18N.t(“选择文件后会立即显示队列。点击”开始处理”后，这里会展示进度和下载结果。”) : “选择文件后会立即显示队列。点击”开始处理”后，这里会展示进度和下载结果。”), “result-placeholder”);
       renderFields(tool, dynamicFields);
     }, 0);
   });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const _t = (s) => (window.I18N ? window.I18N.t(s) : s);
     if (!state.acceptedFiles.length) {
-      setResultMessage(resultState, "请先选择符合大小和数量限制的文件。");
+      setResultMessage(resultState, _t("请先选择符合大小和数量限制的文件。"));
       return;
     }
 
@@ -657,7 +662,7 @@ function attachToolWorkspace(panel) {
         await processOnServer(tool, state.acceptedFiles, values, resultState);
       }
     } catch (error) {
-      setResultMessage(resultState, error.message || "处理失败，请稍后重试。");
+      setResultMessage(resultState, error.message || _t("处理失败，请稍后重试。"));
     }
   });
 }

@@ -43,8 +43,10 @@
         <form id="tool-form" class="tool-form">
           <label class="dropzone" for="files">
             <input id="files" name="files" type="file" multiple accept="{{ tool.accept }}" />
-            <span class="dropzone-title">拖拽文件到这里，或点击选择文件</span>
-            <small>单个文件不超过 {{ tool.max_file_mb }}MB，最多 {{ tool.max_files }} 个文件。</small>
+            <span class="dropzone-icon">📂</span>
+            <span class="dropzone-title" data-i18n="dropzone.title">拖拽文件到这里，或点击选择文件</span>
+            <button type="button" class="dropzone-btn" onclick="document.getElementById('files').click()" data-i18n="dropzone.btn">选择文件</button>
+            <span class="dropzone-hint" data-i18n-template="dropzone.hint" data-max-mb="{{ tool.max_file_mb }}" data-max-files="{{ tool.max_files }}">单个文件不超过 {{ tool.max_file_mb }}MB · 最多 {{ tool.max_files }} 个文件</span>
           </label>
           <div class="queue-panel">
             <div class="queue-header">

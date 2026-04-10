@@ -209,6 +209,37 @@ textarea {
   cursor: pointer;
 }
 
+.lang-switcher {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.lang-btn {
+  min-height: 34px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.lang-btn:hover {
+  background: var(--bg-muted);
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+
+.lang-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
 .hero-section,
 .tool-hero,
 .section {
@@ -607,7 +638,49 @@ textarea {
 }
 
 .dropzone input {
-  display: none;
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dropzone-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: white;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  pointer-events: auto;
+}
+
+.dropzone-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 36%, transparent);
+}
+
+.dropzone-icon {
+  font-size: 2.4rem;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+.dropzone-hint {
+  font-size: 0.85rem;
+  color: var(--text-faint);
+}
+
+.dropzone.is-dragover .dropzone-btn {
+  transform: scale(1.06);
 }
 
 .dropzone-title {

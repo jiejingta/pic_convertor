@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import asyncio
+import shutil
+from datetime import datetime, timedelta
+
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -33,8 +38,40 @@ from app.tool_registry import (
 )
 
 FAVICON_PATH = STATIC_DIR / "favicon.svg"
+JOB_MAX_AGE_DAYS = 7
+
+
+def cleanup_old_jobs() -> int:
+    """Delete job directories older than JOB_MAX_AGE_DAYS. Returns count of removed dirs."""
+    cutoff = datetime.now() - timedelta(days=JOB_MAX_AGE_DAYS)
+    removed = 0
+    if not JOBS_DIR.exists():
+        return 0
+    for entry in JOBS_DIR.iterdir():
+        if entry.is_dir():
+            try:
+                mtime = datetime.fromtimestamp(entry.stat().st_mtime)
+                if mtime < cutoff:
+                    shutil.rmtree(entry, ignore_errors=True)
+                    removed += 1
+            except OSError:
+                pass
+    return removed
+
+
+async def periodic_cleanup(interval_hours: int = 12) -> None:
+    while True:
+        await asyncio.sleep(interval_hours * 3600)
+        cleanup_old_jobs()
+
 
 app = FastAPI(title=SITE_NAME, description=SITE_DESCRIPTION)
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    cleanup_old_jobs()
+    asyncio.create_task(periodic_cleanup())
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -231,6 +268,23 @@ async def sitemap(request: Request) -> Response:
         body.extend(["<url>", f"<loc>{canonical(site_url, path)}</loc>", f"<lastmod>{today}</lastmod>", "</url>"])
     body.append("</urlset>")
     return Response("\n".join(body), media_type="application/xml")
+
+
+@app.post("/api/translate", response_class=JSONResponse)
+async def translate_proxy(request: Request) -> JSONResponse:
+    """Server-side proxy for Edge Translate API (avoids CORS in browser)."""
+    try:
+        body = await request.json()
+        texts = body.get("texts", [])
+        to_lang = body.get("to", "en")
+        if not texts or len(texts) > 200:
+            return JSONResponse({"error": "invalid"}, status_code=400)
+        url = f"https://edge.microsoft.com/translate/translatetext?from=zh-Hans&to={to_lang}&isEnterpriseClient=false"
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(url, json=texts, headers={"Content-Type": "application/json"})
+        return JSONResponse(resp.json())
+    except Exception:
+        return JSONResponse(texts)  # fallback: return originals
 
 
 @app.post("/api/process/{slug}", response_class=JSONResponse)

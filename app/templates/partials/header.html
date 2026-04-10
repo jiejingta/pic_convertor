@@ -4,7 +4,7 @@
       <span class="brand-mark">图</span>
       <span>
         <strong>{{ site_name }}</strong>
-        <small>在线处理图片与 PDF，更适合日常上传和资料整理</small>
+        <small data-i18n-text>在线处理图片与 PDF，更适合日常上传和资料整理</small>
       </span>
     </a>
     <div class="header-actions">
@@ -12,9 +12,10 @@
         {% for item in nav_tools %}
         <a href="/zh-CN/{{ item.slug }}">{{ item.nav_title or item.title }}</a>
         {% endfor %}
-        <a href="/zh-CN/tools">全部工具</a>
+        <a href="/zh-CN/tools" data-i18n-text>全部工具</a>
       </nav>
-      <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换主题">切换夜间</button>
+      <div id="lang-switcher" class="lang-switcher" aria-label="语言选择"></div>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换主题" data-i18n-text>切换夜间</button>
     </div>
   </div>
 </header>
