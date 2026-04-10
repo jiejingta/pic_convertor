@@ -212,6 +212,64 @@
       </div>
       {% endif %}
 
+      {# Watermark settings #}
+      {% if tool.ui.get('watermark') %}
+      <div class="field-row">
+        <label class="field-label" for="f-text">水印文字</label>
+        <input class="field-input" type="text" id="f-text" name="text"
+               placeholder="例如：© 版权所有"
+               value="{{ tool.default_options.get('text', '© Watermark') }}" />
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="f-position">水印位置</label>
+        <select class="field-select" id="f-position" name="position">
+          <option value="center"       {{ 'selected' if tool.default_options.get('position','center') == 'center'       else '' }}>居中</option>
+          <option value="top-left"     {{ 'selected' if tool.default_options.get('position','center') == 'top-left'     else '' }}>左上角</option>
+          <option value="top-right"    {{ 'selected' if tool.default_options.get('position','center') == 'top-right'    else '' }}>右上角</option>
+          <option value="bottom-left"  {{ 'selected' if tool.default_options.get('position','center') == 'bottom-left'  else '' }}>左下角</option>
+          <option value="bottom-right" {{ 'selected' if tool.default_options.get('position','center') == 'bottom-right' else '' }}>右下角</option>
+          <option value="tiled"        {{ 'selected' if tool.default_options.get('position','center') == 'tiled'        else '' }}>平铺</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">
+          <span>透明度</span>
+          <span class="setting-value" id="opacity-val">{{ tool.default_options.get('opacity', 50) }}%</span>
+        </div>
+        <input type="range" id="opacity-slider" name="opacity" min="10" max="100"
+               value="{{ tool.default_options.get('opacity', 50) }}"
+               oninput="document.getElementById('opacity-val').textContent=this.value+'%';" />
+      </div>
+      <div class="field-row-2">
+        <div>
+          <label class="field-label" for="f-font_size">字号 (px)</label>
+          <input class="field-input" type="number" id="f-font_size" name="font_size"
+                 min="8" max="300" value="{{ tool.default_options.get('font_size', 36) }}" />
+        </div>
+        <div>
+          <label class="field-label" for="f-color">颜色</label>
+          <input class="field-input field-color" type="color" id="f-color" name="color"
+                 value="{{ tool.default_options.get('color', '#ffffff') }}" />
+        </div>
+      </div>
+      {% endif %}
+
+      {# GIF animation options #}
+      {% if tool.ui.get('gif_options') %}
+      <div class="field-row">
+        <label class="field-label" for="f-frame_delay">帧延迟 (毫秒)</label>
+        <input class="field-input" type="number" id="f-frame_delay" name="frame_delay"
+               min="20" max="5000" step="10"
+               value="{{ tool.default_options.get('frame_delay', 100) }}" />
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="f-loop">循环次数（0 = 无限）</label>
+        <input class="field-input" type="number" id="f-loop" name="loop"
+               min="0" max="100"
+               value="{{ tool.default_options.get('loop', 0) }}" />
+      </div>
+      {% endif %}
+
       <div class="card-divider"></div>
       <button class="process-btn" id="process-btn" disabled>
         开始处理
