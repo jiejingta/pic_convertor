@@ -70,9 +70,9 @@
         {{ '📄' if cat == 'pdf' else ('🔄' if cat in ('convert','converters') else ('🗜' if cat == 'compress' else '📐')) }}
       </div>
       <span class="cat-name">{{ group.label }}</span>
-      <span class="cat-count">{{ group.items | length }} 个工具</span>
+      <span class="cat-count">{{ group['items'] | length }} 个工具</span>
     </div>
-    {% set items = group.items %}
+    {% set items = group['items'] %}
     {% include "partials/tool_cards.html" %}
   </div>
   {% endfor %}
