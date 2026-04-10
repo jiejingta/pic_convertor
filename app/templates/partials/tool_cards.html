@@ -1,0 +1,19 @@
+<div class="tool-card-grid">
+  {% for item in items %}
+  {% set payload = item.to_payload() if item.to_payload is defined else item %}
+  <article class="tool-card" data-tool-card data-category="{{ item.category if item.category is defined else payload.category }}" data-search="{{ payload.search_blob if payload.search_blob is defined else '' }}">
+    <div class="tool-card-head">
+      <span class="tool-card-icon">{{ item.icon if item.icon is defined else payload.icon }}</span>
+      {% if item.badge or payload.badge %}
+      <span class="tool-card-badge">{{ item.badge if item.badge is defined and item.badge else payload.badge }}</span>
+      {% endif %}
+    </div>
+    <div class="tool-card-meta">
+      <span>{{ payload.processing_label }}</span>
+      <span>{{ payload.use_cases[0] if payload.use_cases }}</span>
+    </div>
+    <h3><a href="/zh-CN/{{ item.slug if item.slug is defined else payload.slug }}">{{ item.title if item.title is defined else payload.title }}</a></h3>
+    <p>{{ item.description if item.description is defined else payload.description }}</p>
+  </article>
+  {% endfor %}
+</div>

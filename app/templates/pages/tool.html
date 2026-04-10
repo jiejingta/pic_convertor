@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="tool-hero">
+  <div class="container tool-hero-grid">
+    <div>
+      <div class="hero-tags">
+        {% for tag in tool.use_cases %}
+        <span>{{ tag }}</span>
+        {% endfor %}
+      </div>
+      <h1>{{ tool.title }}</h1>
+      <p class="tool-subtitle">{{ tool.subtitle }}</p>
+      <div class="tool-hero-actions">
+        <span class="status-pill">{{ tool.processing_label }}</span>
+        <span class="status-pill">{{ tool.format_summary }}</span>
+        <span class="status-pill">单个文件不超过 {{ tool.max_file_mb }}MB</span>
+      </div>
+    </div>
+    <aside class="tool-summary">
+      <span class="tool-icon">{{ tool.icon }}</span>
+      <p>{{ tool.description }}</p>
+      <ul>
+        <li>{{ tool.processing_notice }}</li>
+        <li>支持最多 {{ tool.max_files }} 个文件同时处理。</li>
+        <li>选完文件后会立即显示队列、大小和处理方式。</li>
+      </ul>
+    </aside>
+  </div>
+</section>
+
+<section class="section workspace-section">
+  <div class="container">
+    <div class="workspace-panel" data-tool-slug="{{ tool.slug }}" data-tool='{{ tool | tojson | safe }}'>
+      <div class="workspace-form">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow">开始处理</span>
+            <h2>上传文件，确认参数，然后生成结果</h2>
+          </div>
+          <p>系统会先校验文件大小和数量，再决定使用浏览器本地处理还是服务器处理。</p>
+        </div>
+        <form id="tool-form" class="tool-form">
+          <label class="dropzone" for="files">
+            <input id="files" name="files" type="file" multiple accept="{{ tool.accept }}" />
+            <span class="dropzone-title">拖拽文件到这里，或点击选择文件</span>
+            <small>单个文件不超过 {{ tool.max_file_mb }}MB，最多 {{ tool.max_files }} 个文件。</small>
+          </label>
+          <div class="queue-panel">
+            <div class="queue-header">
+              <strong>已选文件</strong>
+              <span id="queue-summary">还没有选择文件</span>
+            </div>
+            <div id="queue-list" class="queue-list empty">选择文件后，这里会显示文件名、大小和可否处理。</div>
+          </div>
+          <div id="dynamic-fields" class="dynamic-fields"></div>
+          <div id="form-hint" class="form-hint">{{ tool.processing_notice }}</div>
+          <div class="form-actions">
+            <button class="button primary" type="submit">开始处理</button>
+            <button class="button ghost" type="reset">清空</button>
+          </div>
+        </form>
+      </div>
+      <div class="workspace-result">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow">结果</span>
+            <h2>结果会显示在这里</h2>
+          </div>
+          <p>处理时会显示状态；完成后可单个下载，也可一次打包下载。</p>
+        </div>
+        <div id="result-state" class="result-placeholder">
+          <p>选择文件后会立即显示队列。点击“开始处理”后，这里会展示进度和下载结果。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">使用体验</span>
+        <h2>{{ tool.title }} 的优势</h2>
+      </div>
+      <p>围绕用户最关心的“能不能处理、怎么下、适合什么场景”来展示，不再让说明文案喧宾夺主。</p>
+    </div>
+    <div class="feature-grid">
+      {% for item in tool.features %}
+      <article class="feature-card">
+        <h3>{{ item.title }}</h3>
+        <p>{{ item.body }}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container split-layout">
+    <div class="content-card">
+      <span class="eyebrow">使用步骤</span>
+      <h2>如何使用 {{ tool.title }}</h2>
+      <ol class="step-list">
+        {% for step in tool.steps %}
+        <li>{{ step }}</li>
+        {% endfor %}
+      </ol>
+    </div>
+    <div class="content-card">
+      <span class="eyebrow">常见问题</span>
+      <h2>{{ tool.title }} 常见问题</h2>
+      <div class="faq-list">
+        {% for faq in tool.faqs %}
+        <article>
+          <h3>{{ faq.question }}</h3>
+          <p>{{ faq.answer }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if related_tools %}
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">相关工具</span>
+        <h2>继续下一步处理</h2>
+      </div>
+      <p>如果当前结果还需要继续压缩、改格式或整理 PDF，可以直接从这里继续。</p>
+    </div>
+    {% set items = related_tools %}
+    {% include "partials/tool_cards.html" %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

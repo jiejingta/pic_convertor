@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero-section">
+  <div class="container hero-grid">
+    <div>
+      <span class="eyebrow">上传更顺手，整理更省事</span>
+      <h1>先说你的目标，再帮你选对工具。</h1>
+      <p class="hero-copy">
+        无论你是要压缩到指定大小、改成目标格式、调整尺寸，还是整理 PDF，这里都按实际使用场景来分类。
+      </p>
+      <form class="search-panel" data-tool-search="home">
+        <label class="search-input">
+          <span>搜索工具</span>
+          <input type="search" data-tool-search-input placeholder="例如：压缩到 100KB、转 JPG、合并 PDF、报名照" />
+        </label>
+        <div class="search-actions">
+          <a class="button primary" href="/zh-CN/tools">浏览全部工具</a>
+          <a class="button ghost" href="/zh-CN/convert">直接开始转换</a>
+        </div>
+        <div class="quick-terms">
+          <button type="button" data-search-chip="报名照">报名照</button>
+          <button type="button" data-search-chip="压缩到 100KB">压缩到 100KB</button>
+          <button type="button" data-search-chip="转 JPG">转 JPG</button>
+          <button type="button" data-search-chip="合并 PDF">合并 PDF</button>
+        </div>
+      </form>
+      <div class="search-results hidden" data-tool-search-results></div>
+      <div class="hero-actions">
+        <a class="button subtle" href="/zh-CN/compress">图片压缩</a>
+        <a class="button subtle" href="/zh-CN/resize-image-to-kb">压到指定大小</a>
+        <a class="button subtle" href="/zh-CN/jpg-to-pdf">图片转 PDF</a>
+      </div>
+      <div class="stat-strip">
+        <div><strong>{{ featured_tools | length }}</strong><span>常用工具可直接进入</span></div>
+        <div><strong>本地优先</strong><span>常见图片优先在浏览器处理</span></div>
+        <div><strong>批量下载</strong><span>结果可逐个下载或打包</span></div>
+      </div>
+    </div>
+    <div class="hero-panel">
+      <div class="hero-panel-inner">
+        <div class="hero-panel-head">
+          <div>
+            <span class="eyebrow">常用入口</span>
+            <h2>最常被使用的功能</h2>
+          </div>
+          <p>适合上传限制、格式兼容、文章配图和 PDF 整理。</p>
+        </div>
+        {% set items = featured_tools[:8] %}
+        {% include "partials/tool_cards.html" %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container stack-40">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">按目标选择</span>
+        <h2>不知道该用哪个？先按场景走</h2>
+      </div>
+      <p>把“我想做什么”放在前面，比从几十个功能名里硬找更省时间。</p>
+    </div>
+    <div class="scenario-grid">
+      {% for group in scenario_groups %}
+      <section class="scenario-card">
+        <div class="scenario-copy">
+          <h3>{{ group.title }}</h3>
+          <p>{{ group.description }}</p>
+        </div>
+        {% set items = group["items"] %}
+        {% include "partials/tool_cards.html" %}
+      </section>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container stack-40">
+    {% for group in featured_groups %}
+    <div>
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">{{ group["label"] }}</span>
+          <h2>{{ group["label"] }}</h2>
+        </div>
+        <p>{{ group["description"] }}</p>
+      </div>
+      {% set items = group["items"][:6] %}
+      {% include "partials/tool_cards.html" %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

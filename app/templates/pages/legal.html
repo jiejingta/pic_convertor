@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section compact-hero">
+  <div class="container narrow">
+    <span class="eyebrow">站点信息</span>
+    <h1>{{ content.title }}</h1>
+    <p class="section-copy">{{ content.summary }}</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container narrow">
+    <div class="content-card">
+      <ul class="legal-list">
+        {% for item in content.items %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</section>
+{% endblock %}

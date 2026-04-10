@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+storage/jobs/
+coverage/
+.pytest_cache/
+deploy-package.tar.gz

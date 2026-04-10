@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section compact-hero">
+  <div class="container">
+    <span class="eyebrow">工具导航</span>
+    <h1>按分类查找，也可以直接搜索</h1>
+    <p class="section-copy">如果你只知道“要把图片压小”或“要把 PDF 合并”，直接搜需求关键词就能找到对应工具。</p>
+    <div class="catalog-toolbar" data-tool-search="catalog">
+      <label class="search-input">
+        <span>搜索工具</span>
+        <input type="search" data-tool-search-input placeholder="输入需求，例如 改尺寸、压缩到 50KB、提取 PDF 图片" />
+      </label>
+      <div class="category-filter">
+        <button type="button" class="is-active" data-category-filter="all">全部</button>
+        {% for group in tool_groups %}
+        <button type="button" data-category-filter="{{ group['key'] }}">{{ group["label"] }}</button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container stack-40">
+    {% for group in tool_groups %}
+    <div class="catalog-group" data-category-group="{{ group['key'] }}">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">{{ group["label"] }}</span>
+          <h2>{{ group["label"] }}</h2>
+        </div>
+        <p>{{ group["description"] }}</p>
+      </div>
+      {% set items = group["items"] %}
+      {% include "partials/tool_cards.html" %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
