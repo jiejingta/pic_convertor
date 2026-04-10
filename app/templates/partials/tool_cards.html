@@ -1,19 +1,25 @@
-<div class="tool-card-grid">
+<div class="tool-grid">
   {% for item in items %}
-  {% set payload = item.to_payload() if item.to_payload is defined else item %}
-  <article class="tool-card" data-tool-card data-category="{{ item.category if item.category is defined else payload.category }}" data-search="{{ payload.search_blob if payload.search_blob is defined else '' }}">
-    <div class="tool-card-head">
-      <span class="tool-card-icon">{{ item.icon if item.icon is defined else payload.icon }}</span>
-      {% if item.badge or payload.badge %}
-      <span class="tool-card-badge">{{ item.badge if item.badge is defined and item.badge else payload.badge }}</span>
+  {% set p = item.to_payload() if item.to_payload is defined else item %}
+  {% set cat = item.category if item.category is defined else p.category %}
+  {% set icon_cls = 'red' if cat == 'pdf' else ('green' if cat == 'convert' or cat == 'converters' else ('amber' if cat == 'compress' else 'blue')) %}
+  <a class="tool-card"
+     href="/zh-CN/{{ item.slug if item.slug is defined else p.slug }}"
+     data-tool-card
+     data-category="{{ cat }}"
+     data-search="{{ p.search_blob if p.search_blob is defined else '' }}">
+    <div class="tool-card-icon {{ icon_cls }}">{{ item.icon if item.icon is defined else p.icon }}</div>
+    <div class="tool-card-name">{{ item.title if item.title is defined else p.title }}</div>
+    <div class="tool-card-desc">{{ item.description if item.description is defined else p.description }}</div>
+    <div class="tool-card-tags">
+      {% set badge = item.badge if item.badge is defined and item.badge else (p.badge if p.badge is defined else '') %}
+      {% if badge %}
+      <span class="tag hot">🔥 {{ badge }}</span>
+      {% endif %}
+      {% if p.client_strategy is defined and p.client_strategy != 'server' %}
+      <span class="tag local">浏览器处理</span>
       {% endif %}
     </div>
-    <div class="tool-card-meta">
-      <span>{{ payload.processing_label }}</span>
-      <span>{{ payload.use_cases[0] if payload.use_cases }}</span>
-    </div>
-    <h3><a href="/zh-CN/{{ item.slug if item.slug is defined else payload.slug }}">{{ item.title if item.title is defined else payload.title }}</a></h3>
-    <p>{{ item.description if item.description is defined else payload.description }}</p>
-  </article>
+  </a>
   {% endfor %}
 </div>

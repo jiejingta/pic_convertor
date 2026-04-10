@@ -41,11 +41,20 @@ const STATIC = {
     "服务器处理": "Server",
     "超出限制": "Too large",
     "超出数量": "Too many",
-    // Buttons
+    // Buttons / queue states
     "开始处理": "Process",
     "清空": "Clear",
     "下载文件": "Download",
     "下载 ZIP": "Download ZIP",
+    "下载": "Download",
+    "打包下载": "Download ZIP",
+    "等待中": "Waiting",
+    "处理中…": "Processing…",
+    "完成": "Done",
+    "失败": "Failed",
+    "重试": "Retry",
+    "文件队列": "File Queue",
+    "个文件处理完成": " file(s) processed",
     // Processing messages (mirrored in app.js via window.I18N.t)
     "正在浏览器中处理，请稍候…": "Processing locally…",
     "正在上传并处理，请稍候…": "Uploading & processing…",
@@ -53,7 +62,7 @@ const STATIC = {
     "处理失败，请稍后重试。": "Processing failed. Please try again.",
     // Result area
     "结果会显示在这里": "Results appear here",
-    "选择文件后会立即显示队列。点击"开始处理"后，这里会展示进度和下载结果。":
+    "选择文件后会立即显示队列。点击「开始处理」后，这里会展示进度和下载结果。":
       "The queue appears after file selection. Click Process to see progress and download results.",
     "处理完成，共生成": "Done —",
     "个结果文件。": "result file(s).",
@@ -84,7 +93,7 @@ const STATIC = {
     "适合上传限制、格式兼容、文章配图和 PDF 整理。": "For upload limits, format issues, image editing, and PDF tasks.",
     "按目标选择": "Browse by goal",
     "不知道该用哪个？先按场景走": "Not sure which tool? Start with your use case.",
-    "把"我想做什么"放在前面，比从几十个功能名里硬找更省时间。":
+    "把「我想做什么」放在前面，比从几十个功能名里硬找更省时间。":
       "Thinking about what you want to achieve is faster than scanning a long feature list.",
     "搜索工具": "Search tools",
     "常用工具可直接进入": "tools ready to use",
@@ -129,11 +138,20 @@ const STATIC = {
     "服务器处理": "サーバー処理",
     "超出限制": "サイズ超過",
     "超出数量": "数量超過",
-    // Buttons
+    // Buttons / queue states
     "开始处理": "処理開始",
     "清空": "クリア",
     "下载文件": "ダウンロード",
     "下载 ZIP": "ZIPダウンロード",
+    "下载": "ダウンロード",
+    "打包下载": "ZIPで一括ダウンロード",
+    "等待中": "待機中",
+    "处理中…": "処理中…",
+    "完成": "完了",
+    "失败": "失敗",
+    "重试": "再試行",
+    "文件队列": "ファイルキュー",
+    "个文件处理完成": "件のファイルを処理しました",
     // Processing messages
     "正在浏览器中处理，请稍候…": "ローカルで処理中…",
     "正在上传并处理，请稍候…": "アップロード・処理中…",
@@ -141,7 +159,7 @@ const STATIC = {
     "处理失败，请稍后重试。": "処理に失敗しました。後でもう一度お試しください。",
     // Result area
     "结果会显示在这里": "結果はここに表示されます",
-    "选择文件后会立即显示队列。点击"开始处理"后，这里会展示进度和下载结果。":
+    "选择文件后会立即显示队列。点击「开始处理」后，这里会展示进度和下载结果。":
       "ファイルを選択するとキューが表示されます。「処理開始」をクリックすると進捗と結果が表示されます。",
     "处理完成，共生成": "完了 —",
     "个结果文件。": "件のファイル",

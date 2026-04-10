@@ -1,21 +1,36 @@
-<header class="site-header">
-  <div class="container nav-row">
-    <a class="brand" href="/zh-CN">
-      <span class="brand-mark">图</span>
-      <span>
-        <strong>{{ site_name }}</strong>
-        <small data-i18n-text>在线处理图片与 PDF，更适合日常上传和资料整理</small>
-      </span>
-    </a>
-    <div class="header-actions">
-      <nav class="top-nav" aria-label="主导航">
-        {% for item in nav_tools %}
-        <a href="/zh-CN/{{ item.slug }}">{{ item.nav_title or item.title }}</a>
-        {% endfor %}
-        <a href="/zh-CN/tools" data-i18n-text>全部工具</a>
-      </nav>
-      <div id="lang-switcher" class="lang-switcher" aria-label="语言选择"></div>
-      <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换主题" data-i18n-text>切换夜间</button>
-    </div>
+{% if tool is defined %}
+{# ── Tool page header: back + breadcrumb ── #}
+<header class="tool-header-bar">
+  <a class="back-btn" href="/zh-CN">← 返回</a>
+  <div class="breadcrumb">
+    <span>首页</span>
+    <span class="breadcrumb-sep">›</span>
+    <span class="breadcrumb-cur">{{ tool.title }}</span>
+  </div>
+  <div class="header-right">
+    <div id="lang-switcher" class="lang-switcher"></div>
+    <button class="nav-btn icon-btn-sm" data-theme-toggle title="切换主题">🌙</button>
   </div>
 </header>
+{% else %}
+{# ── Home / catalog header: logo + search + nav ── #}
+<header class="site-header">
+  <a class="logo" href="/zh-CN">
+    <div class="logo-icon">🖼</div>
+    {{ site_name }}
+  </a>
+  <div class="header-search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="header-search-input" placeholder="搜索工具…" autocomplete="off" />
+  </div>
+  <nav class="header-nav">
+    {% for item in nav_tools %}
+    <a class="nav-btn" href="/zh-CN/{{ item.slug }}">{{ item.nav_title or item.title }}</a>
+    {% endfor %}
+    <a class="nav-btn" href="/zh-CN/tools">全部工具</a>
+    <div id="lang-switcher" class="lang-switcher"></div>
+    <button class="nav-btn icon-btn-sm" data-theme-toggle title="切换主题">🌙</button>
+  </nav>
+</header>
+<div id="header-search-results" class="search-results hidden" style="position:fixed;top:56px;left:50%;transform:translateX(-50%);width:min(480px,calc(100vw - 32px));z-index:200;"></div>
+{% endif %}

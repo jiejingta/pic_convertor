@@ -12,22 +12,15 @@
     <meta property="og:url" content="{{ page.canonical }}" />
     <meta property="og:locale" content="zh_CN" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap"
-      rel="stylesheet"
-    />
     <link rel="stylesheet" href="/static/css/site.css" />
     {% for schema in page.structured_data %}
     <script type="application/ld+json">{{ schema | safe }}</script>
     {% endfor %}
   </head>
-  <body data-theme="light">
-    <div class="site-shell">
-      {% include "partials/header.html" %}
+  <body>
+    <div class="page-wrap">
+      {% block header %}{% include "partials/header.html" %}{% endblock %}
       <main>{% block content %}{% endblock %}</main>
       {% include "partials/footer.html" %}
     </div>

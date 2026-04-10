@@ -1,41 +1,53 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="section compact-hero">
-  <div class="container">
-    <span class="eyebrow">工具导航</span>
-    <h1>按分类查找，也可以直接搜索</h1>
-    <p class="section-copy">如果你只知道“要把图片压小”或“要把 PDF 合并”，直接搜需求关键词就能找到对应工具。</p>
-    <div class="catalog-toolbar" data-tool-search="catalog">
-      <label class="search-input">
-        <span>搜索工具</span>
-        <input type="search" data-tool-search-input placeholder="输入需求，例如 改尺寸、压缩到 50KB、提取 PDF 图片" />
-      </label>
-      <div class="category-filter">
-        <button type="button" class="is-active" data-category-filter="all">全部</button>
-        {% for group in tool_groups %}
-        <button type="button" data-category-filter="{{ group['key'] }}">{{ group["label"] }}</button>
-        {% endfor %}
-      </div>
+
+{# ── Catalog Header ── #}
+<div class="catalog-hero">
+  <h1>全部工具</h1>
+  <p>图片压缩、格式转换、尺寸调整、PDF 处理 —— 按分类浏览或直接搜索</p>
+  <div class="catalog-search-row">
+    <div class="catalog-search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" id="catalog-search-input"
+             placeholder="搜索工具，例如：压缩 JPG、PDF 转图片…" autocomplete="off" />
     </div>
   </div>
-</section>
+</div>
 
-<section class="section">
-  <div class="container stack-40">
+{# ── Category Tabs ── #}
+<div class="catalog-body" style="padding-bottom:0">
+  <div class="category-tabs" id="cat-tabs">
+    <button class="cat-tab active" data-cat="all">全部</button>
     {% for group in tool_groups %}
-    <div class="catalog-group" data-category-group="{{ group['key'] }}">
-      <div class="section-head">
-        <div>
-          <span class="eyebrow">{{ group["label"] }}</span>
-          <h2>{{ group["label"] }}</h2>
-        </div>
-        <p>{{ group["description"] }}</p>
-      </div>
-      {% set items = group["items"] %}
-      {% include "partials/tool_cards.html" %}
-    </div>
+    {% set cat = group.key %}
+    <button class="cat-tab" data-cat="{{ cat }}">
+      {{ '📄' if cat == 'pdf' else ('🔄' if cat in ('convert','converters') else ('🗜' if cat == 'compress' else '📐')) }}
+      {{ group.label }}
+    </button>
     {% endfor %}
   </div>
-</section>
+</div>
+
+{# ── Tool Sections ── #}
+<div class="catalog-body">
+  {% for group in tool_groups %}
+  {% set cat = group.key %}
+  {% set icon_cls = 'red' if cat == 'pdf' else ('green' if cat in ('convert','converters') else ('amber' if cat == 'compress' else 'blue')) %}
+  <div class="cat-section" data-cat-section="{{ cat }}">
+    <div class="cat-header">
+      <div class="cat-icon {{ icon_cls }}">
+        {{ '📄' if cat == 'pdf' else ('🔄' if cat in ('convert','converters') else ('🗜' if cat == 'compress' else '📐')) }}
+      </div>
+      <span class="cat-name">{{ group.label }}</span>
+      <span class="cat-count">{{ group.items | length }} 个工具</span>
+    </div>
+    {% set items = group.items %}
+    {% include "partials/tool_cards.html" %}
+  </div>
+  {% endfor %}
+</div>
+
 {% endblock %}

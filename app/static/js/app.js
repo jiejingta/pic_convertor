@@ -1,59 +1,20 @@
-const FIELD_BUILDERS = {
-  quality(tool) {
-    return `<div class="field"><label for="quality">输出质量</label><input id="quality" name="quality" type="number" min="1" max="100" value="${tool.default_options.quality ?? 90}" /></div>`;
-  },
-  keep_metadata(tool) {
-    return `<div class="field"><label for="keep_metadata">保留图片元数据</label><select id="keep_metadata" name="keep_metadata"><option value="false">否</option><option value="true" ${tool.default_options.keep_metadata ? "selected" : ""}>是</option></select></div>`;
-  },
-  lossless(tool) {
-    return `<div class="field"><label for="lossless">无损优先</label><select id="lossless" name="lossless"><option value="false">关闭</option><option value="true" ${tool.default_options.lossless ? "selected" : ""}>开启</option></select></div>`;
-  },
-  target_kb(tool) {
-    const value = tool.default_options.target_kb ?? 100;
-    return `<div class="field"><label for="target_kb">目标大小 (KB)</label><input id="target_kb" name="target_kb" type="number" min="5" value="${value}" ${tool.ui.locked_target_kb ? "readonly" : ""} /></div>`;
-  },
-  format_select(tool) {
-    const options = tool.output_formats.length ? tool.output_formats : [tool.default_options.output_format];
-    const current = tool.fixed_output_format ?? tool.default_options.output_format;
-    return `<div class="field"><label for="output_format">输出格式</label><select id="output_format" name="output_format">${options.map((item) => `<option value="${item}" ${item === current ? "selected" : ""}>${item.toUpperCase()}</option>`).join("")}</select></div>`;
-  },
-  size(tool) {
-    return `<div class="field"><label for="width">宽度 (px)</label><input id="width" name="width" type="number" min="1" value="${tool.default_options.width ?? 1920}" /></div><div class="field"><label for="height">高度 (px)</label><input id="height" name="height" type="number" min="1" value="${tool.default_options.height ?? 1080}" /></div>`;
-  },
-  keep_aspect_ratio(tool) {
-    return `<div class="field"><label for="keep_aspect_ratio">保持比例</label><select id="keep_aspect_ratio" name="keep_aspect_ratio"><option value="true" ${(tool.default_options.keep_aspect_ratio ?? true) ? "selected" : ""}>是</option><option value="false" ${(tool.default_options.keep_aspect_ratio ?? true) ? "" : "selected"}>否</option></select></div>`;
-  },
-  dpi(tool) {
-    return `<div class="field"><label for="dpi">目标 DPI</label><input id="dpi" name="dpi" type="number" min="36" max="1200" value="${tool.default_options.dpi ?? 300}" /></div>`;
-  },
-  pdf_layout(tool) {
-    return `<div class="field"><label for="page_size">页面尺寸</label><select id="page_size" name="page_size">${["A4", "Letter", "Original"].map((item) => `<option value="${item}" ${item === (tool.default_options.page_size ?? "A4") ? "selected" : ""}>${item}</option>`).join("")}</select></div><div class="field"><label for="orientation">方向</label><select id="orientation" name="orientation">${["portrait", "landscape"].map((item) => `<option value="${item}" ${item === (tool.default_options.orientation ?? "portrait") ? "selected" : ""}>${item === "portrait" ? "纵向" : "横向"}</option>`).join("")}</select></div><div class="field"><label for="margin">边距 (px)</label><input id="margin" name="margin" type="number" min="0" value="${tool.default_options.margin ?? 24}" /></div><div class="field"><label for="merge_mode">输出方式</label><select id="merge_mode" name="merge_mode"><option value="single" ${(tool.default_options.merge_mode ?? "single") === "single" ? "selected" : ""}>合并成一个 PDF</option><option value="multiple" ${(tool.default_options.merge_mode ?? "single") === "multiple" ? "selected" : ""}>每张图单独导出</option></select></div>`;
-  },
-  pdf_image_format(tool) {
-    const options = tool.output_formats.length ? tool.output_formats : [tool.fixed_output_format ?? tool.default_options.output_format ?? "jpg"];
-    const current = tool.fixed_output_format ?? tool.default_options.output_format ?? "jpg";
-    return `<div class="field"><label for="output_format">导出格式</label><select id="output_format" name="output_format">${options.map((item) => `<option value="${item}" ${item === current ? "selected" : ""}>${item.toUpperCase()}</option>`).join("")}</select></div><div class="field"><label for="zoom">清晰度倍率</label><input id="zoom" name="zoom" type="number" min="1" max="4" step="0.5" value="${tool.default_options.zoom ?? 2}" /></div>`;
-  },
-  page_ranges(tool) {
-    return `<div class="field full"><label for="page_ranges">页码范围</label><textarea id="page_ranges" name="page_ranges" placeholder="例如：1-3,5,8-10">${tool.default_options.page_ranges ?? ""}</textarea></div>`;
-  },
-};
+/**
+ * app.js — Main frontend logic
+ *
+ * Handles:
+ *  1. Theme toggle (body.classList 'light')
+ *  2. Search (hero + header + catalog)
+ *  3. Tool workspace: 4-state queue, local/server processing, result bar
+ *  4. Sidebar controls: quality slider, preset buttons, toggle switches
+ */
 
-const LOCAL_RASTER_EXTS = new Set(["jpg", "jpeg", "png", "webp", "bmp"]);
-const LOCAL_COMPRESS_EXTS = new Set(["jpg", "jpeg", "webp"]);
-const LOCAL_IMAGE_OUTPUTS = new Set(["jpg", "jpeg", "png", "webp"]);
+// ── Constants ──────────────────────────────────────────────────────────────────
+const LOCAL_RASTER_EXTS   = new Set(["jpg","jpeg","png","webp","bmp"]);
+const LOCAL_COMPRESS_EXTS = new Set(["jpg","jpeg","webp"]);
+const LOCAL_IMAGE_OUTPUTS = new Set(["jpg","jpeg","png","webp"]);
 
-function readToolIndex() {
-  const node = document.querySelector("#tool-index-data");
-  if (!node) return [];
-  try {
-    return JSON.parse(node.textContent);
-  } catch (_error) {
-    return [];
-  }
-}
-
-const TOOL_INDEX = readToolIndex();
+// ── Utility ────────────────────────────────────────────────────────────────────
+function _t(s) { return window.I18N ? window.I18N.t(s) : s; }
 
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes)) return "0 B";
@@ -63,14 +24,14 @@ function formatBytes(bytes) {
 }
 
 function normalizeExt(filename) {
-  const chunks = filename.toLowerCase().split(".");
-  return chunks.length > 1 ? chunks.at(-1) : "";
+  const parts = filename.toLowerCase().split(".");
+  return parts.length > 1 ? parts[parts.length - 1] : "";
 }
 
 function normalizeOutputFormat(value) {
   if (!value) return "jpg";
   if (value === "jpeg") return "jpg";
-  if (value === "tif") return "tiff";
+  if (value === "tif")  return "tiff";
   return value.toLowerCase();
 }
 
@@ -80,365 +41,249 @@ function stem(filename) {
   return parts.join(".") || filename;
 }
 
-function renderFields(tool, container) {
-  const order = ["quality", "keep_metadata", "lossless", "target_kb", "format_select", "size", "keep_aspect_ratio", "dpi", "pdf_layout", "pdf_image_format", "page_ranges"];
-  const html = order.filter((key) => tool.ui[key]).map((key) => FIELD_BUILDERS[key]?.(tool) ?? "").join("");
-  container.innerHTML = html || '<div class="field full"><label>当前工具无需额外参数</label><input type="text" value="直接上传文件即可" readonly /></div>';
+// ── Tool index (for search) ────────────────────────────────────────────────────
+function readToolIndex() {
+  const el = document.getElementById("tool-index-data");
+  if (!el) return [];
+  try { return JSON.parse(el.textContent); } catch(_) { return []; }
 }
+const TOOL_INDEX = readToolIndex();
 
+// ── Theme toggle ───────────────────────────────────────────────────────────────
 function initThemeToggle() {
-  const storageKey = "pic-convertor-theme";
-  const button = document.querySelector("[data-theme-toggle]");
-  const saved = window.localStorage.getItem(storageKey);
-  if (saved === "dark" || saved === "light") {
-    document.body.dataset.theme = saved;
-  }
-  const syncLabel = () => {
-    if (!button) return;
-    button.textContent = document.body.dataset.theme === "dark" ? "切换日间" : "切换夜间";
+  const KEY = "pic-convertor-theme";
+  const btn = document.querySelector("[data-theme-toggle]");
+  if (localStorage.getItem(KEY) === "light") document.body.classList.add("light");
+
+  const sync = () => {
+    if (!btn) return;
+    const isLight = document.body.classList.contains("light");
+    btn.textContent = isLight ? "🌙" : "☀️";
+    btn.title = isLight ? "切换夜间" : "切换日间";
   };
-  syncLabel();
-  button?.addEventListener("click", () => {
-    document.body.dataset.theme = document.body.dataset.theme === "dark" ? "light" : "dark";
-    window.localStorage.setItem(storageKey, document.body.dataset.theme);
-    syncLabel();
+  sync();
+  btn?.addEventListener("click", () => {
+    document.body.classList.toggle("light");
+    localStorage.setItem(KEY, document.body.classList.contains("light") ? "light" : "dark");
+    sync();
   });
 }
 
-function searchTools(query) {
-  const keyword = query.trim().toLowerCase();
-  if (!keyword) return [];
-  return TOOL_INDEX.filter((tool) => tool.search_blob.includes(keyword)).slice(0, 10);
+// ── Search ─────────────────────────────────────────────────────────────────────
+function searchTools(q) {
+  const kw = q.trim().toLowerCase();
+  if (!kw) return [];
+  return TOOL_INDEX.filter(t => (t.search_blob || "").includes(kw)).slice(0, 8);
 }
 
-function renderSearchCards(results) {
+function renderSearchDropdown(results) {
   if (!results.length) {
-    return '<div class="search-empty">没有找到完全匹配的工具，试试“压缩”“转 JPG”“PDF”这类关键词。</div>';
+    return `<div class="search-empty">没有找到相关工具，试试"压缩""PDF""转换"。</div>`;
   }
-  return results
-    .map(
-      (tool) => `<a class="search-result-card" href="${tool.path}">
-        <div>
-          <strong>${tool.title}</strong>
-          <p>${tool.description}</p>
-          <span>${tool.category_label} · ${tool.processing_label}</span>
-        </div>
-        <strong>进入</strong>
-      </a>`,
-    )
-    .join("");
+  return results.map(t =>
+    `<a class="search-result-card" href="/zh-CN/${t.slug}">
+      <strong>${t.title}</strong>
+      <p>${t.description || ""}</p>
+    </a>`
+  ).join("");
 }
 
-function initSearchPanels() {
-  document.querySelectorAll("[data-tool-search='home']").forEach((panel) => {
-    const input = panel.querySelector("[data-tool-search-input]");
-    const results = panel.parentElement.querySelector("[data-tool-search-results]");
-    const chips = panel.querySelectorAll("[data-search-chip]");
+function bindSearch(inputId, resultsId) {
+  const input   = document.getElementById(inputId);
+  const results = document.getElementById(resultsId);
+  if (!input || !results) return;
 
-    const run = () => {
-      const query = input.value.trim();
-      if (!query) {
-        results.classList.add("hidden");
-        results.innerHTML = "";
-        return;
-      }
-      results.classList.remove("hidden");
-      results.innerHTML = renderSearchCards(searchTools(query));
-    };
-
-    input?.addEventListener("input", run);
-    chips.forEach((chip) =>
-      chip.addEventListener("click", () => {
-        input.value = chip.dataset.searchChip || "";
-        run();
-      }),
-    );
+  input.addEventListener("input", () => {
+    const q = input.value.trim();
+    if (!q) { results.classList.add("hidden"); return; }
+    results.classList.remove("hidden");
+    results.innerHTML = renderSearchDropdown(searchTools(q));
   });
 
-  document.querySelectorAll("[data-tool-search='catalog']").forEach((panel) => {
-    const input = panel.querySelector("[data-tool-search-input]");
-    const buttons = panel.querySelectorAll("[data-category-filter]");
-    let activeCategory = "all";
+  document.addEventListener("click", e => {
+    if (!input.contains(e.target) && !results.contains(e.target)) {
+      results.classList.add("hidden");
+    }
+  });
+}
 
-    const apply = () => {
-      const query = (input?.value || "").trim().toLowerCase();
-      document.querySelectorAll("[data-category-group]").forEach((group) => {
-        const matchesCategory = activeCategory === "all" || group.dataset.categoryGroup === activeCategory;
-        let visibleCount = 0;
-        group.querySelectorAll("[data-tool-card]").forEach((card) => {
-          const haystack = card.dataset.search || "";
-          const visible = matchesCategory && (!query || haystack.includes(query));
-          card.classList.toggle("is-hidden", !visible);
-          if (visible) visibleCount += 1;
-        });
-        group.classList.toggle("is-hidden", visibleCount === 0);
+function initCatalogFilter() {
+  // tools.html uses data-cat-section on sections and data-tool-card on cards
+  const input   = document.getElementById("catalog-search-input");
+  const btnList = document.querySelectorAll(".cat-tab[data-cat]");
+  if (!btnList.length && !input) return;
+
+  let activeCat = "all";
+
+  const apply = () => {
+    const q = (input ? input.value.trim().toLowerCase() : "");
+    document.querySelectorAll("[data-cat-section]").forEach(section => {
+      const matchCat = activeCat === "all" || section.dataset.catSection === activeCat;
+      let visible = 0;
+      section.querySelectorAll("[data-tool-card]").forEach(card => {
+        const show = matchCat && (!q || (card.dataset.search || "").includes(q));
+        card.style.display = show ? "" : "none";
+        if (show) visible++;
       });
-    };
+      section.style.display = visible ? "" : "none";
+    });
+  };
 
-    input?.addEventListener("input", apply);
-    buttons.forEach((button) =>
-      button.addEventListener("click", () => {
-        activeCategory = button.dataset.categoryFilter || "all";
-        buttons.forEach((item) => item.classList.toggle("is-active", item === button));
-        apply();
-      }),
-    );
-    apply();
+  input?.addEventListener("input", apply);
+
+  btnList.forEach(btn => {
+    btn.addEventListener("click", () => {
+      activeCat = btn.dataset.cat || "all";
+      btnList.forEach(b => b.classList.toggle("active", b === btn));
+      apply();
+    });
   });
 }
 
-function extractValues(form) {
-  const values = Object.fromEntries(new FormData(form).entries());
-  for (const [key, value] of Object.entries(values)) {
-    values[key] = typeof value === "string" ? value.trim() : value;
-  }
+function initSearch() {
+  bindSearch("hero-search-input",   "hero-search-results");
+  bindSearch("header-search-input", "header-search-results");
+  initCatalogFilter();
+}
+
+// ── Sidebar toggle buttons ─────────────────────────────────────────────────────
+function initToggleButtons() {
+  document.querySelectorAll(".toggle[id^='tog-']").forEach(btn => {
+    const key    = btn.id.replace("tog-", "");
+    const hidden = document.getElementById(`v-${key}`);
+    btn.addEventListener("click", () => {
+      btn.classList.toggle("on");
+      if (hidden) hidden.value = btn.classList.contains("on") ? "true" : "false";
+    });
+  });
+
+  // Quality preset buttons
+  document.querySelectorAll(".preset-btn[data-q]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const q      = btn.dataset.q;
+      const slider = document.getElementById("quality-slider");
+      const valEl  = document.getElementById("quality-val");
+      const hidden = document.getElementById("quality-hidden");
+      if (slider) slider.value = q;
+      if (valEl)  valEl.textContent = q + "%";
+      if (hidden) hidden.value = q;
+      document.querySelectorAll(".preset-btn[data-q]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+}
+
+// ── Read settings from sidebar ────────────────────────────────────────────────
+function getSettings() {
+  const card = document.getElementById("settings-card");
+  if (!card) return {};
+  const values = {};
+  card.querySelectorAll("input[name], select[name]").forEach(el => {
+    values[el.name] = el.value;
+  });
   return values;
 }
 
-function createQueueItemMarkup(entry) {
-  return `<div class="queue-item">
-    <div>
-      <strong>${entry.file.name}</strong>
-      <p>${formatBytes(entry.file.size)} · ${entry.note}</p>
-    </div>
-    <span class="queue-tag ${entry.level}">${entry.badge}</span>
-  </div>`;
+// ── Local image processing ────────────────────────────────────────────────────
+function outputMime(fmt) {
+  const f = normalizeOutputFormat(fmt);
+  return f === "jpg" ? "image/jpeg" : `image/${f}`;
+}
+function outputName(file, fmt) {
+  return `${stem(file.name)}.${normalizeOutputFormat(fmt)}`;
 }
 
-function renderQueue(queueList, summaryNode, entries) {
-  const _t = (s) => (window.I18N ? window.I18N.t(s) : s);
-  if (!entries.length) {
-    queueList.classList.add("empty");
-    queueList.innerHTML = _t("选择文件后，这里会显示文件名、大小和可否处理。");
-    summaryNode.textContent = _t("还没有选择文件");
-    return;
-  }
-  const accepted = entries.filter((item) => item.level !== "error");
-  const total = accepted.reduce((sum, item) => sum + item.file.size, 0);
-  summaryNode.textContent = `已选 ${accepted.length} 个文件，合计 ${formatBytes(total)}`;
-  queueList.classList.remove("empty");
-  queueList.innerHTML = entries.map(createQueueItemMarkup).join("");
-}
-
-function isLocalOutputFormat(format) {
-  return LOCAL_IMAGE_OUTPUTS.has(normalizeOutputFormat(format));
-}
-
-function canProcessLocally(tool, files, values) {
-  if (!files.length) {
-    return { local: false, reason: tool.processing_notice };
-  }
-  if (tool.client_strategy === "server") {
-    return { local: false, reason: tool.processing_notice };
-  }
-  if (values.keep_metadata === "true" || values.lossless === "true") {
-    return { local: false, reason: "当前参数要求保留元数据或无损输出，本次将切换到服务器处理。" };
-  }
-  if (tool.mode === "image_dpi") {
-    return { local: false, reason: "DPI 元数据写入更适合由服务器完成。" };
-  }
-  if (tool.mode.startsWith("pdf_") || ["pdf_merge", "pdf_split", "pdf_extract_images", "pdf_delete_pages"].includes(tool.mode)) {
-    return { local: false, reason: tool.processing_notice };
-  }
-  if (!window.PDFLib && tool.mode === "image_to_pdf") {
-    return { local: false, reason: "当前浏览器未加载 PDF 生成库，本次将切换到服务器处理。" };
-  }
-
-  const outputFormat = normalizeOutputFormat(tool.fixed_output_format || values.output_format || "");
-  const allSupported = files.every((file) => {
-    const ext = normalizeExt(file.name);
-    if (tool.mode === "image_compress") {
-      return LOCAL_COMPRESS_EXTS.has(ext);
-    }
-    if (tool.mode === "image_target_size") {
-      return LOCAL_COMPRESS_EXTS.has(ext);
-    }
-    if (tool.mode === "image_convert" || tool.mode === "image_resize") {
-      return LOCAL_RASTER_EXTS.has(ext) && isLocalOutputFormat(outputFormat);
-    }
-    if (tool.mode === "image_to_pdf") {
-      return LOCAL_RASTER_EXTS.has(ext);
-    }
-    return false;
-  });
-
-  if (!allSupported) {
-    return { local: false, reason: "当前文件类型或输出格式不适合在浏览器内处理，本次将使用服务器。" };
-  }
-  return { local: true, reason: "本次会优先在浏览器中处理，文件不会上传到服务器。" };
-}
-
-function validateFiles(tool, files, values) {
-  const maxFiles = Number(tool.max_files || 30);
-  const maxFileBytes = Number(tool.max_file_mb || 25) * 1024 * 1024;
-  const trimmed = files.slice(0, maxFiles);
-  const overLimitFiles = files.slice(maxFiles);
-  const localPlan = canProcessLocally(tool, trimmed, values);
-
-  const entries = trimmed.map((file) => {
-    if (file.size > maxFileBytes) {
-      return {
-        file,
-        level: "error",
-        badge: "超出限制",
-        note: `单个文件不能超过 ${tool.max_file_mb}MB`,
-        accepted: false,
-      };
-    }
-    return {
-      file,
-      level: localPlan.local ? "ok" : "warn",
-      badge: localPlan.local ? "浏览器处理" : "服务器处理",
-      note: localPlan.reason,
-      accepted: true,
-    };
-  });
-
-  overLimitFiles.forEach((file) =>
-    entries.push({
-      file,
-      level: "error",
-      badge: "超出数量",
-      note: `一次最多选择 ${maxFiles} 个文件`,
-      accepted: false,
-    }),
-  );
-
-  return { entries, acceptedFiles: entries.filter((item) => item.accepted).map((item) => item.file), localPlan };
-}
-
-function setResultMessage(node, message, className = "result-card") {
-  node.className = className;
-  node.innerHTML = `<p>${message}</p>`;
-}
-
-function renderRemoteResult(node, payload) {
-  const _t = (s) => (window.I18N ? window.I18N.t(s) : s);
-  const archive = payload.archive_url ? `<a class="button primary" href="${payload.archive_url}" download>${_t("下载 ZIP")}</a>` : "";
-  const cards = payload.items
-    .map((item) => {
-      const saved = item.saved_bytes ? `<p>${_t("节省")} ${formatBytes(item.saved_bytes)}</p>` : "";
-      const preview = item.preview_url ? `<img src="${item.preview_url}" alt="${item.name}" class="result-preview" />` : `<div class="result-preview"></div>`;
-      return `<article class="result-item">${preview}<div><h3>${item.name}</h3><p>${formatBytes(item.size_bytes)}</p>${saved}<a class="button ghost" href="${item.url}" download>${_t("下载文件")}</a></div></article>`;
-    })
-    .join("");
-  node.className = "result-live";
-  node.innerHTML = `<div class="result-toolbar"><p>${_t("处理完成，共生成")} ${payload.count} ${_t("个结果文件。")}</p>${archive}</div><div class="result-list">${cards}</div>`;
-}
-
-async function blobFromCanvas(canvas, mimeType, quality) {
+async function blobFromCanvas(canvas, mime, quality) {
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error("生成文件失败，请重试。"));
-    }, mimeType, quality);
+    canvas.toBlob(
+      blob => blob ? resolve(blob) : reject(new Error("生成文件失败，请重试。")),
+      mime, quality
+    );
   });
-}
-
-function outputMime(format) {
-  const normalized = normalizeOutputFormat(format);
-  return normalized === "jpg" ? "image/jpeg" : `image/${normalized}`;
-}
-
-function outputName(file, format) {
-  const normalized = normalizeOutputFormat(format);
-  return `${stem(file.name)}.${normalized}`;
 }
 
 async function loadImage(file) {
   const url = URL.createObjectURL(file);
   try {
-    const image = await new Promise((resolve, reject) => {
+    return await new Promise((resolve, reject) => {
       const img = new Image();
-      img.onload = () => resolve(img);
+      img.onload  = () => resolve(img);
       img.onerror = () => reject(new Error(`${file.name} 无法在当前浏览器中解码。`));
       img.src = url;
     });
-    return image;
   } finally {
     URL.revokeObjectURL(url);
   }
 }
 
-function resizeDimensions(width, height, targetWidth, targetHeight, keepAspectRatio) {
-  if (!targetWidth && !targetHeight) return { width, height };
-  const safeWidth = targetWidth || width;
-  const safeHeight = targetHeight || height;
-  if (!keepAspectRatio) return { width: safeWidth, height: safeHeight };
-  const ratio = Math.min(safeWidth / width, safeHeight / height);
-  return { width: Math.max(1, Math.round(width * ratio)), height: Math.max(1, Math.round(height * ratio)) };
+function drawToCanvas(img, w, h) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  c.getContext("2d", { alpha: true }).drawImage(img, 0, 0, w, h);
+  return c;
 }
 
-function drawToCanvas(image, width, height) {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d", { alpha: true });
-  context.drawImage(image, 0, 0, width, height);
-  return canvas;
+function resizeDimensions(iw, ih, tw, th, keepAspect) {
+  if (!tw && !th) return { width: iw, height: ih };
+  const sw = tw || iw, sh = th || ih;
+  if (!keepAspect) return { width: sw, height: sh };
+  const r = Math.min(sw / iw, sh / ih);
+  return { width: Math.max(1, Math.round(iw * r)), height: Math.max(1, Math.round(ih * r)) };
 }
 
 async function makeRasterOutput(file, tool, values) {
-  const image = await loadImage(file);
+  const img = await loadImage(file);
   const ext = normalizeExt(file.name);
-  const chosenFormat =
-    normalizeOutputFormat(tool.fixed_output_format || values.output_format || (tool.mode === "image_compress" || tool.mode === "image_target_size" ? ext : "jpg"));
-  const qualityValue = Math.max(0.1, Math.min(1, Number(values.quality || tool.default_options.quality || 90) / 100));
-  let canvas = drawToCanvas(image, image.naturalWidth, image.naturalHeight);
+  const fmt = normalizeOutputFormat(
+    tool.fixed_output_format || values.output_format ||
+    (["image_compress","image_target_size"].includes(tool.mode) ? ext : "jpg")
+  );
+  const quality = Math.max(0.1, Math.min(1,
+    Number(values.quality || (tool.default_options && tool.default_options.quality) || 82) / 100
+  ));
+  let canvas = drawToCanvas(img, img.naturalWidth, img.naturalHeight);
 
   if (tool.mode === "image_resize") {
-    const targetWidth = Number(values.width || image.naturalWidth);
-    const targetHeight = Number(values.height || image.naturalHeight);
-    const keepAspectRatio = values.keep_aspect_ratio !== "false";
-    const dimensions = resizeDimensions(image.naturalWidth, image.naturalHeight, targetWidth, targetHeight, keepAspectRatio);
-    canvas = drawToCanvas(image, dimensions.width, dimensions.height);
+    const tw = Number(values.width  || img.naturalWidth);
+    const th = Number(values.height || img.naturalHeight);
+    const keep = values.keep_aspect_ratio !== "false";
+    const d = resizeDimensions(img.naturalWidth, img.naturalHeight, tw, th, keep);
+    canvas = drawToCanvas(img, d.width, d.height);
   }
 
   if (tool.mode === "image_target_size") {
-    const targetBytes = Number(values.target_kb || tool.default_options.target_kb || 100) * 1024;
-    const mime = outputMime(chosenFormat);
-    let bestBlob = await blobFromCanvas(canvas, mime, 0.92);
+    const targetBytes = Number(values.target_kb || (tool.default_options && tool.default_options.target_kb) || 100) * 1024;
+    const mime = outputMime(fmt);
+    let best = await blobFromCanvas(canvas, mime, 0.92);
     for (const scale of [1, 0.92, 0.84, 0.76, 0.68]) {
-      const width = Math.max(1, Math.round(image.naturalWidth * scale));
-      const height = Math.max(1, Math.round(image.naturalHeight * scale));
-      const scaled = drawToCanvas(image, width, height);
-      let low = 0.1;
-      let high = 0.95;
-      let candidate = bestBlob;
-      for (let index = 0; index < 8; index += 1) {
-        const attemptQuality = (low + high) / 2;
-        const blob = await blobFromCanvas(scaled, mime, attemptQuality);
-        if (blob.size <= targetBytes) {
-          candidate = blob;
-          low = attemptQuality;
-        } else {
-          high = attemptQuality;
-        }
+      const w  = Math.max(1, Math.round(img.naturalWidth  * scale));
+      const h  = Math.max(1, Math.round(img.naturalHeight * scale));
+      const sc = drawToCanvas(img, w, h);
+      let lo = 0.1, hi = 0.95, cand = best;
+      for (let i = 0; i < 8; i++) {
+        const q = (lo + hi) / 2;
+        const b = await blobFromCanvas(sc, mime, q);
+        if (b.size <= targetBytes) { cand = b; lo = q; } else { hi = q; }
       }
-      if (candidate.size <= targetBytes) {
-        bestBlob = candidate;
-        break;
-      }
-      if (candidate.size < bestBlob.size) bestBlob = candidate;
+      if (cand.size <= targetBytes) { best = cand; break; }
+      if (cand.size < best.size) best = cand;
     }
-    return buildLocalResult(file, bestBlob, outputName(file, chosenFormat));
+    return buildLocalResult(file, best, outputName(file, fmt));
   }
 
-  const finalQuality = tool.mode === "image_compress" ? qualityValue : chosenFormat === "png" ? undefined : qualityValue;
-  const blob = await blobFromCanvas(canvas, outputMime(chosenFormat), finalQuality);
-  return buildLocalResult(file, blob, outputName(file, chosenFormat));
+  const finalQ = tool.mode === "image_compress" ? quality : (fmt === "png" ? undefined : quality);
+  const blob = await blobFromCanvas(canvas, outputMime(fmt), finalQ);
+  return buildLocalResult(file, blob, outputName(file, fmt));
 }
 
 function buildLocalResult(file, blob, name) {
-  const isPreview = blob.type.startsWith("image/");
-  const objectUrl = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(blob);
   return {
     name,
     blob,
-    url: objectUrl,
-    preview_url: isPreview ? objectUrl : null,
-    size_bytes: blob.size,
-    size_kb: +(blob.size / 1024).toFixed(2),
+    url,
+    preview_url: blob.type.startsWith("image/") ? url : null,
+    size_bytes:  blob.size,
     source_name: file.name,
     source_size_bytes: file.size,
     saved_bytes: file.size > blob.size ? file.size - blob.size : null,
@@ -450,229 +295,404 @@ async function fileToUint8Array(file) {
 }
 
 async function canvasPngBytes(file) {
-  const image = await loadImage(file);
-  const canvas = drawToCanvas(image, image.naturalWidth, image.naturalHeight);
-  const blob = await blobFromCanvas(canvas, "image/png");
+  const img  = await loadImage(file);
+  const c    = drawToCanvas(img, img.naturalWidth, img.naturalHeight);
+  const blob = await blobFromCanvas(c, "image/png");
   return new Uint8Array(await blob.arrayBuffer());
 }
 
-function pdfPageDimensions(values, imageWidth, imageHeight) {
-  const size = values.page_size || "A4";
-  const orientation = values.orientation || "portrait";
-  let width = 595.28;
-  let height = 841.89;
-  if (size === "Letter") {
-    width = 612;
-    height = 792;
-  } else if (size === "Original") {
-    width = imageWidth;
-    height = imageHeight;
-  }
-  if (orientation === "landscape") {
-    return { width: height, height: width };
-  }
-  return { width, height };
+function pdfPageDimensions(values, iw, ih) {
+  const size   = values.page_size   || "A4";
+  const orient = values.orientation || "portrait";
+  let w = 595.28, h = 841.89;
+  if (size === "Letter")   { w = 612;  h = 792; }
+  else if (size === "Original") { w = iw; h = ih; }
+  return orient === "landscape" ? { width: h, height: w } : { width: w, height: h };
 }
 
-async function buildPdfForFiles(files, values, outputNameValue) {
+async function buildPdfForFiles(files, values, name) {
   const { PDFDocument } = window.PDFLib;
-  const pdfDoc = await PDFDocument.create();
+  const pdf    = await PDFDocument.create();
   const margin = Number(values.margin || 24);
-
   for (const file of files) {
-    const ext = normalizeExt(file.name);
-    const image = await loadImage(file);
-    const pageSize = pdfPageDimensions(values, image.naturalWidth, image.naturalHeight);
-    const page = pdfDoc.addPage([pageSize.width, pageSize.height]);
-
-    let embedded;
-    if (ext === "jpg" || ext === "jpeg") {
-      embedded = await pdfDoc.embedJpg(await fileToUint8Array(file));
-    } else if (ext === "png") {
-      embedded = await pdfDoc.embedPng(await fileToUint8Array(file));
-    } else {
-      embedded = await pdfDoc.embedPng(await canvasPngBytes(file));
-    }
-
-    const innerWidth = pageSize.width - margin * 2;
-    const innerHeight = pageSize.height - margin * 2;
-    const scale = Math.min(innerWidth / embedded.width, innerHeight / embedded.height);
-    const drawWidth = embedded.width * scale;
-    const drawHeight = embedded.height * scale;
-    const x = (pageSize.width - drawWidth) / 2;
-    const y = (pageSize.height - drawHeight) / 2;
-    page.drawImage(embedded, { x, y, width: drawWidth, height: drawHeight });
+    const ext  = normalizeExt(file.name);
+    const img  = await loadImage(file);
+    const ps   = pdfPageDimensions(values, img.naturalWidth, img.naturalHeight);
+    const page = pdf.addPage([ps.width, ps.height]);
+    let emb;
+    if      (ext === "jpg" || ext === "jpeg") emb = await pdf.embedJpg(await fileToUint8Array(file));
+    else if (ext === "png")                   emb = await pdf.embedPng(await fileToUint8Array(file));
+    else                                      emb = await pdf.embedPng(await canvasPngBytes(file));
+    const iw = ps.width - margin * 2, ih = ps.height - margin * 2;
+    const sc = Math.min(iw / emb.width, ih / emb.height);
+    const dw = emb.width * sc, dh = emb.height * sc;
+    page.drawImage(emb, { x: (ps.width - dw) / 2, y: (ps.height - dh) / 2, width: dw, height: dh });
   }
-
-  const bytes = await pdfDoc.save();
-  const blob = new Blob([bytes], { type: "application/pdf" });
+  const bytes = await pdf.save();
+  const blob  = new Blob([bytes], { type: "application/pdf" });
   return {
-    name: outputNameValue,
-    blob,
-    url: URL.createObjectURL(blob),
-    preview_url: null,
-    size_bytes: blob.size,
-    size_kb: +(blob.size / 1024).toFixed(2),
+    name, blob, url: URL.createObjectURL(blob),
+    preview_url: null, size_bytes: blob.size,
+    source_name: files[0] ? files[0].name : "",
+    source_size_bytes: files[0] ? files[0].size : 0,
+    saved_bytes: null,
   };
 }
 
-async function processLocally(tool, files, values, resultNode) {
-  const _t = (s) => (window.I18N ? window.I18N.t(s) : s);
-  setResultMessage(resultNode, _t("正在浏览器中处理，请稍候…"));
-  let outputs = [];
+// ── Decide local vs server ────────────────────────────────────────────────────
+function canProcessLocally(tool, files, values) {
+  if (!files.length || tool.client_strategy === "server") return false;
+  if (values.keep_metadata === "true" || values.lossless === "true") return false;
+  if (tool.mode === "image_dpi") return false;
+  if (tool.mode.startsWith("pdf_") ||
+      ["pdf_merge","pdf_split","pdf_extract_images","pdf_delete_pages"].includes(tool.mode)) return false;
+  if (tool.mode === "image_to_pdf" && !window.PDFLib) return false;
+  const fmt = normalizeOutputFormat(tool.fixed_output_format || values.output_format || "");
+  return files.every(file => {
+    const ext = normalizeExt(file.name);
+    if (["image_compress","image_target_size"].includes(tool.mode)) return LOCAL_COMPRESS_EXTS.has(ext);
+    if (["image_convert","image_resize"].includes(tool.mode))
+      return LOCAL_RASTER_EXTS.has(ext) && LOCAL_IMAGE_OUTPUTS.has(fmt);
+    if (tool.mode === "image_to_pdf") return LOCAL_RASTER_EXTS.has(ext);
+    return false;
+  });
+}
 
-  if (tool.mode === "image_to_pdf") {
-    if ((values.merge_mode || "single") === "multiple") {
-      outputs = [];
-      for (const file of files) {
-        outputs.push(await buildPdfForFiles([file], values, `${stem(file.name)}.pdf`));
-      }
-    } else {
-      outputs = [await buildPdfForFiles(files, values, `${tool.slug}.pdf`)];
-    }
+// ── Queue state ───────────────────────────────────────────────────────────────
+// entry: { file, state: 'waiting'|'processing'|'done'|'error', result, error, thumbUrl }
+let queueState = [];
+let toolData   = null;
+
+function renderFileItem(entry, index) {
+  const { file, state, result, error } = entry;
+
+  // Thumbnail
+  let thumbHtml;
+  if (entry.thumbUrl) {
+    thumbHtml = `<img src="${entry.thumbUrl}" />`;
+  } else if (file.type === "application/pdf") {
+    thumbHtml = "📄";
   } else {
-    outputs = [];
-    for (const file of files) {
-      outputs.push(await makeRasterOutput(file, tool, values));
-    }
+    thumbHtml = "📎";
   }
 
-  let archiveUrl = null;
-  if (outputs.length > 1 && window.JSZip) {
-    const zip = new window.JSZip();
-    outputs.forEach((item) => zip.file(item.name, item.blob));
-    const archiveBlob = await zip.generateAsync({ type: "blob" });
-    archiveUrl = URL.createObjectURL(archiveBlob);
+  // Meta row
+  let metaHtml = `<span>${formatBytes(file.size)}</span>`;
+  let extraHtml = "";
+  let statusHtml = "";
+
+  if (state === "waiting") {
+    statusHtml =
+      `<span class="status-chip waiting">${_t("等待中")}</span>` +
+      `<button class="file-action-btn" data-remove="${index}" title="移除">✕</button>`;
+
+  } else if (state === "processing") {
+    statusHtml = `<span class="status-chip processing">${_t("处理中…")}</span>`;
+    extraHtml  = `<div class="progress-bar"><div class="progress-fill indeterminate"></div></div>`;
+
+  } else if (state === "done" && result) {
+    const pct = result.saved_bytes && file.size
+      ? ` (${_t("节省")} ${Math.round(result.saved_bytes / file.size * 100)}%)`
+      : "";
+    metaHtml =
+      `<span>${formatBytes(file.size)}</span><span>→</span>` +
+      `<span style="color:var(--green)">✓ ${formatBytes(result.size_bytes)}${pct}</span>`;
+    const dlAttr = result.url ? `href="${result.url}" download="${result.name}"` : "";
+    statusHtml =
+      `<span class="status-chip done">✓ ${_t("完成")}</span>` +
+      `<a class="file-action-btn download" ${dlAttr} title="${_t("下载")}">⬇</a>` +
+      `<button class="file-action-btn" data-remove="${index}" title="移除">✕</button>`;
+
+  } else if (state === "error") {
+    extraHtml =
+      `<div class="error-msg">⚠ ${error || _t("处理失败，请稍后重试。")} ` +
+      `<button class="retry-btn" data-retry="${index}">${_t("重试")}</button></div>`;
+    statusHtml =
+      `<span class="status-chip error">${_t("失败")}</span>` +
+      `<button class="file-action-btn" data-remove="${index}" title="移除">✕</button>`;
   }
 
-  renderRemoteResult(resultNode, { count: outputs.length, items: outputs, archive_url: archiveUrl });
+  return `<div class="file-item ${state}" data-index="${index}">
+    <div class="file-thumb">${thumbHtml}</div>
+    <div class="file-info">
+      <div class="file-name">${file.name}</div>
+      <div class="file-meta">${metaHtml}</div>
+      ${extraHtml}
+    </div>
+    <div class="file-status">${statusHtml}</div>
+  </div>`;
 }
 
-async function processOnServer(tool, files, values, resultNode) {
-  const _t = (s) => (window.I18N ? window.I18N.t(s) : s);
-  setResultMessage(resultNode, _t("正在上传并处理，请稍候…"));
-  const formData = new FormData();
-  files.forEach((file) => formData.append("files", file));
-  Object.entries(values).forEach(([key, value]) => formData.append(key, value));
+function renderQueue() {
+  const list  = document.getElementById("file-list");
+  const wrap  = document.getElementById("queue-wrap");
+  const label = document.getElementById("queue-label");
+  if (!list || !wrap) return;
 
-  const response = await fetch(`/api/process/${tool.slug}`, { method: "POST", body: formData });
-  const payload = await response.json();
-  if (!response.ok || !payload.ok) {
-    throw new Error(payload.error || "处理失败，请稍后重试。");
-  }
-  renderRemoteResult(resultNode, payload);
-}
+  if (!queueState.length) { wrap.style.display = "none"; return; }
 
-function attachToolWorkspace(panel) {
-  const tool = JSON.parse(panel.dataset.tool);
-  const form = panel.querySelector("#tool-form");
-  const dynamicFields = panel.querySelector("#dynamic-fields");
-  const queueList = panel.querySelector("#queue-list");
-  const queueSummary = panel.querySelector("#queue-summary");
-  const resultState = panel.querySelector("#result-state");
-  const fileInput = form.querySelector("#files");
-  const dropzone = form.querySelector(".dropzone");
-  const formHint = form.querySelector("#form-hint");
+  wrap.style.display = "";
+  if (label) label.textContent = `${_t("文件队列")} (${queueState.length})`;
+  list.innerHTML = queueState.map((e, i) => renderFileItem(e, i)).join("");
 
-  renderFields(tool, dynamicFields);
-
-  const state = {
-    files: [],
-    acceptedFiles: [],
-    entries: [],
-    localPlan: { local: false, reason: tool.processing_notice },
-  };
-
-  const reevaluate = () => {
-    const values = extractValues(form);
-    const evaluation = validateFiles(tool, state.files, values);
-    state.entries = evaluation.entries;
-    state.acceptedFiles = evaluation.acceptedFiles;
-    state.localPlan = evaluation.localPlan;
-    renderQueue(queueList, queueSummary, state.entries);
-    formHint.textContent = state.localPlan.reason;
-  };
-
-  const setFiles = (fileList) => {
-    state.files = Array.from(fileList);
-    reevaluate();
-  };
-
-  fileInput.addEventListener("change", () => setFiles(fileInput.files));
-  form.addEventListener("change", () => {
-    if (state.files.length) reevaluate();
-  });
-
-  ["dragenter", "dragover"].forEach((eventName) =>
-    dropzone.addEventListener(eventName, (event) => {
-      event.preventDefault();
-      dropzone.classList.add("is-dragover");
-    }),
-  );
-
-  ["dragleave", "drop"].forEach((eventName) =>
-    dropzone.addEventListener(eventName, (event) => {
-      event.preventDefault();
-      dropzone.classList.remove("is-dragover");
-    }),
-  );
-
-  dropzone.addEventListener("drop", (event) => {
-    const files = event.dataTransfer?.files;
-    if (files?.length) {
-      setFiles(files);
-    }
-  });
-
-  form.addEventListener("reset", () => {
-    window.setTimeout(() => {
-      state.files = [];
-      state.acceptedFiles = [];
-      state.entries = [];
-      state.localPlan = { local: false, reason: tool.processing_notice };
-      renderQueue(queueList, queueSummary, []);
-      formHint.textContent = tool.processing_notice;
-      setResultMessage(resultState, (window.I18N ? window.I18N.t(“选择文件后会立即显示队列。点击”开始处理”后，这里会展示进度和下载结果。”) : “选择文件后会立即显示队列。点击”开始处理”后，这里会展示进度和下载结果。”), “result-placeholder”);
-      renderFields(tool, dynamicFields);
-    }, 0);
-  });
-
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const _t = (s) => (window.I18N ? window.I18N.t(s) : s);
-    if (!state.acceptedFiles.length) {
-      setResultMessage(resultState, _t("请先选择符合大小和数量限制的文件。"));
-      return;
-    }
-
-    const values = extractValues(form);
-    try {
-      if (state.localPlan.local) {
-        try {
-          await processLocally(tool, state.acceptedFiles, values, resultState);
-        } catch (localError) {
-          if (tool.client_strategy === "hybrid") {
-            setResultMessage(resultState, `浏览器处理失败，正在切换到服务器：${localError.message}`);
-            await processOnServer(tool, state.acceptedFiles, values, resultState);
-          } else {
-            throw localError;
-          }
-        }
-      } else {
-        await processOnServer(tool, state.acceptedFiles, values, resultState);
+  // Remove buttons
+  list.querySelectorAll("[data-remove]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const i = Number(btn.dataset.remove);
+      if (queueState[i] && queueState[i].thumbUrl) {
+        URL.revokeObjectURL(queueState[i].thumbUrl);
       }
-    } catch (error) {
-      setResultMessage(resultState, error.message || _t("处理失败，请稍后重试。"));
+      queueState.splice(i, 1);
+      renderQueue();
+      updateProcessBtn();
+      updateResultBar();
+    });
+  });
+
+  // Retry buttons
+  list.querySelectorAll("[data-retry]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const i = Number(btn.dataset.retry);
+      if (queueState[i]) { queueState[i].state = "waiting"; queueState[i].error = null; }
+      renderQueue();
+      updateProcessBtn();
+    });
+  });
+}
+
+function updateResultBar() {
+  const bar = document.getElementById("result-bar");
+  if (!bar) return;
+
+  const done = queueState.filter(e => e.state === "done" && e.result);
+  if (!done.length) { bar.style.display = "none"; return; }
+
+  const allFinished = queueState.length > 0 &&
+    queueState.every(e => e.state === "done" || e.state === "error");
+  if (!allFinished) { bar.style.display = "none"; return; }
+
+  const totalSaved = done.reduce((s, e) => s + (e.result.saved_bytes || 0), 0);
+  const savedStr   = totalSaved > 0 ? `，节省 <strong>${formatBytes(totalSaved)}</strong>` : "";
+
+  let dlBtn = "";
+  if (done.length > 1 && window.JSZip) {
+    dlBtn = `<button class="download-all-btn" id="dl-all-btn">⬇ ${_t("打包下载")}</button>`;
+  } else if (done.length === 1 && done[0].result.url) {
+    dlBtn = `<a class="download-all-btn" href="${done[0].result.url}" download="${done[0].result.name}">⬇ ${_t("下载")}</a>`;
+  }
+
+  bar.style.display = "";
+  bar.innerHTML = `
+    <div class="result-bar-icon">🎉</div>
+    <div class="result-bar-text">${done.length} 个文件处理完成${savedStr}</div>
+    ${dlBtn}`;
+
+  document.getElementById("dl-all-btn")?.addEventListener("click", async () => {
+    const btn = document.getElementById("dl-all-btn");
+    if (btn) { btn.textContent = "⏳ 打包中…"; btn.disabled = true; }
+    try {
+      const zip = new window.JSZip();
+      done.forEach(e => { if (e.result.blob) zip.file(e.result.name, e.result.blob); });
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(toolData && toolData.slug) || "files"}.zip`;
+      a.click();
+    } finally {
+      if (btn) { btn.textContent = `⬇ ${_t("打包下载")}`; btn.disabled = false; }
     }
   });
 }
 
-function initWorkspaces() {
-  document.querySelectorAll(".workspace-panel").forEach(attachToolWorkspace);
+function updateProcessBtn() {
+  const btn = document.getElementById("process-btn");
+  if (!btn) return;
+  const waiting = queueState.filter(e => e.state === "waiting" || e.state === "error");
+  btn.disabled = !waiting.length;
+  if (waiting.length) {
+    btn.textContent = `${_t("开始处理")} (${waiting.length})`;
+  } else {
+    btn.textContent = _t("开始处理");
+  }
 }
 
+// ── Add files ─────────────────────────────────────────────────────────────────
+function addFilesToQueue(fileList) {
+  if (!toolData) return;
+  const maxFiles = Number(toolData.max_files || 30);
+  const maxBytes = Number(toolData.max_file_mb || 25) * 1024 * 1024;
+
+  Array.from(fileList).forEach(file => {
+    if (queueState.length >= maxFiles) return;
+    const entry = { file, state: "waiting", result: null, error: null, thumbUrl: null };
+    if (file.type.startsWith("image/")) {
+      entry.thumbUrl = URL.createObjectURL(file);
+    }
+    if (file.size > maxBytes) {
+      entry.state = "error";
+      entry.error = `文件超过 ${toolData.max_file_mb}MB 限制`;
+    }
+    queueState.push(entry);
+  });
+
+  renderQueue();
+  updateProcessBtn();
+}
+
+// ── Server processing helpers ──────────────────────────────────────────────────
+function serverItemToResult(item, file) {
+  return {
+    name:  item.name,
+    blob:  null,
+    url:   item.url,
+    preview_url:       item.preview_url  || null,
+    size_bytes:        item.size_bytes,
+    source_name:       file ? file.name  : "",
+    source_size_bytes: file ? file.size  : 0,
+    saved_bytes:       item.saved_bytes  || null,
+  };
+}
+
+async function processAllOnServer(tool, files, values) {
+  const fd = new FormData();
+  files.forEach(f => fd.append("files", f));
+  Object.entries(values).forEach(([k, v]) => fd.append(k, v));
+  const resp = await fetch(`/api/process/${tool.slug}`, { method: "POST", body: fd });
+  const data = await resp.json();
+  if (!resp.ok || !data.ok) throw new Error(data.error || _t("处理失败，请稍后重试。"));
+  return (data.items || []).map((item, i) => serverItemToResult(item, files[i]));
+}
+
+// ── Process files ─────────────────────────────────────────────────────────────
+async function processFiles() {
+  if (!toolData) return;
+  const values   = getSettings();
+  const waiting  = queueState.filter(e => e.state === "waiting");
+  if (!waiting.length) return;
+
+  const useLocal = canProcessLocally(toolData, waiting.map(e => e.file), values);
+
+  if (useLocal) {
+    // Process each file individually so we can show per-file state
+    for (let i = 0; i < queueState.length; i++) {
+      if (queueState[i].state !== "waiting") continue;
+      queueState[i].state = "processing";
+      renderQueue();
+      try {
+        let result;
+        if (toolData.mode === "image_to_pdf") {
+          result = await buildPdfForFiles(
+            [queueState[i].file], values, `${stem(queueState[i].file.name)}.pdf`
+          );
+        } else {
+          result = await makeRasterOutput(queueState[i].file, toolData, values);
+        }
+        queueState[i].state  = "done";
+        queueState[i].result = result;
+      } catch (err) {
+        if (toolData.client_strategy === "hybrid") {
+          // Fall back to server for this one file
+          try {
+            const fd = new FormData();
+            fd.append("files", queueState[i].file);
+            Object.entries(values).forEach(([k, v]) => fd.append(k, v));
+            const resp = await fetch(`/api/process/${toolData.slug}`, { method: "POST", body: fd });
+            const data = await resp.json();
+            if (!resp.ok || !data.ok) throw new Error(data.error);
+            queueState[i].state  = "done";
+            queueState[i].result = serverItemToResult(data.items[0], queueState[i].file);
+          } catch (srvErr) {
+            queueState[i].state = "error";
+            queueState[i].error = srvErr.message || _t("处理失败，请稍后重试。");
+          }
+        } else {
+          queueState[i].state = "error";
+          queueState[i].error = err.message || _t("处理失败，请稍后重试。");
+        }
+      }
+      renderQueue();
+    }
+
+  } else {
+    // Server: batch all waiting files
+    const waitingIdx = queueState
+      .map((e, i) => ({ e, i }))
+      .filter(x => x.e.state === "waiting");
+
+    waitingIdx.forEach(({ i }) => { queueState[i].state = "processing"; });
+    renderQueue();
+
+    try {
+      const files   = waitingIdx.map(x => x.e.file);
+      const results = await processAllOnServer(toolData, files, values);
+      waitingIdx.forEach(({ i }, ri) => {
+        queueState[i].state  = "done";
+        queueState[i].result = results[ri];
+      });
+    } catch (err) {
+      waitingIdx.forEach(({ i }) => {
+        queueState[i].state = "error";
+        queueState[i].error = err.message || _t("处理失败，请稍后重试。");
+      });
+    }
+    renderQueue();
+  }
+
+  updateResultBar();
+  updateProcessBtn();
+}
+
+// ── Tool workspace init ────────────────────────────────────────────────────────
+function initToolWorkspace() {
+  const dataEl = document.getElementById("tool-data");
+  if (!dataEl) return;
+  try { toolData = JSON.parse(dataEl.textContent); } catch (_) { return; }
+
+  const zone      = document.getElementById("uploadZone");
+  const fileInput = document.getElementById("fileInput");
+  const processBtn = document.getElementById("process-btn");
+  const clearBtn  = document.getElementById("queue-clear");
+  if (!zone || !fileInput) return;
+
+  // File input
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files.length) addFilesToQueue(fileInput.files);
+    fileInput.value = "";
+  });
+
+  // Drag & drop
+  zone.addEventListener("dragover", e => {
+    e.preventDefault();
+    zone.classList.add("drag-over");
+  });
+  zone.addEventListener("dragleave", e => {
+    if (!zone.contains(e.relatedTarget)) zone.classList.remove("drag-over");
+  });
+  zone.addEventListener("drop", e => {
+    e.preventDefault();
+    zone.classList.remove("drag-over");
+    if (e.dataTransfer && e.dataTransfer.files.length) addFilesToQueue(e.dataTransfer.files);
+  });
+
+  // Process
+  processBtn?.addEventListener("click", () => { processFiles(); });
+
+  // Clear
+  clearBtn?.addEventListener("click", () => {
+    queueState.forEach(e => { if (e.thumbUrl) URL.revokeObjectURL(e.thumbUrl); });
+    queueState = [];
+    renderQueue();
+    updateProcessBtn();
+    const bar = document.getElementById("result-bar");
+    if (bar) bar.style.display = "none";
+  });
+
+  initToggleButtons();
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   initThemeToggle();
-  initSearchPanels();
-  initWorkspaces();
+  initSearch();
+  initToolWorkspace();
 });

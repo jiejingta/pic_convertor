@@ -1,97 +1,118 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="hero-section">
-  <div class="container hero-grid">
-    <div>
-      <span class="eyebrow">上传更顺手，整理更省事</span>
-      <h1>先说你的目标，再帮你选对工具。</h1>
-      <p class="hero-copy">
-        无论你是要压缩到指定大小、改成目标格式、调整尺寸，还是整理 PDF，这里都按实际使用场景来分类。
-      </p>
-      <form class="search-panel" data-tool-search="home">
-        <label class="search-input">
-          <span>搜索工具</span>
-          <input type="search" data-tool-search-input placeholder="例如：压缩到 100KB、转 JPG、合并 PDF、报名照" />
-        </label>
-        <div class="search-actions">
-          <a class="button primary" href="/zh-CN/tools">浏览全部工具</a>
-          <a class="button ghost" href="/zh-CN/convert">直接开始转换</a>
-        </div>
-        <div class="quick-terms">
-          <button type="button" data-search-chip="报名照">报名照</button>
-          <button type="button" data-search-chip="压缩到 100KB">压缩到 100KB</button>
-          <button type="button" data-search-chip="转 JPG">转 JPG</button>
-          <button type="button" data-search-chip="合并 PDF">合并 PDF</button>
-        </div>
-      </form>
-      <div class="search-results hidden" data-tool-search-results></div>
-      <div class="hero-actions">
-        <a class="button subtle" href="/zh-CN/compress">图片压缩</a>
-        <a class="button subtle" href="/zh-CN/resize-image-to-kb">压到指定大小</a>
-        <a class="button subtle" href="/zh-CN/jpg-to-pdf">图片转 PDF</a>
-      </div>
-      <div class="stat-strip">
-        <div><strong>{{ featured_tools | length }}</strong><span>常用工具可直接进入</span></div>
-        <div><strong>本地优先</strong><span>常见图片优先在浏览器处理</span></div>
-        <div><strong>批量下载</strong><span>结果可逐个下载或打包</span></div>
-      </div>
+
+{# ── Hero ── #}
+<section class="hero">
+  <div class="hero-badge">
+    <div class="hero-badge-dot"></div>
+    免费使用 · 无需登录 · 本地处理保护隐私
+  </div>
+  <h1>图片与 PDF<br>一站式在线工具</h1>
+  <p class="hero-sub">压缩、转换、调整尺寸、处理 PDF —— 常见操作在浏览器内完成，文件不上传服务器</p>
+
+  <div class="hero-search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="hero-search-input" placeholder="搜索工具，例如：压缩 JPG、PDF 转图片…" autocomplete="off" />
+  </div>
+  <div id="hero-search-results" class="search-results hidden"></div>
+
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-num">{{ featured_tools | length }}+</div>
+      <div class="stat-label">工具</div>
     </div>
-    <div class="hero-panel">
-      <div class="hero-panel-inner">
-        <div class="hero-panel-head">
-          <div>
-            <span class="eyebrow">常用入口</span>
-            <h2>最常被使用的功能</h2>
-          </div>
-          <p>适合上传限制、格式兼容、文章配图和 PDF 整理。</p>
-        </div>
-        {% set items = featured_tools[:8] %}
-        {% include "partials/tool_cards.html" %}
-      </div>
+    <div class="stat">
+      <div class="stat-num">浏览器端</div>
+      <div class="stat-label">隐私安全</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">批量</div>
+      <div class="stat-label">支持多文件</div>
     </div>
   </div>
 </section>
 
-<section class="section">
-  <div class="container stack-40">
-    <div class="section-head">
-      <div>
-        <span class="eyebrow">按目标选择</span>
-        <h2>不知道该用哪个？先按场景走</h2>
-      </div>
-      <p>把“我想做什么”放在前面，比从几十个功能名里硬找更省时间。</p>
-    </div>
-    <div class="scenario-grid">
-      {% for group in scenario_groups %}
-      <section class="scenario-card">
-        <div class="scenario-copy">
-          <h3>{{ group.title }}</h3>
-          <p>{{ group.description }}</p>
-        </div>
-        {% set items = group["items"] %}
-        {% include "partials/tool_cards.html" %}
-      </section>
-      {% endfor %}
+{# ── Main Section ── #}
+<div class="section-wrap">
+
+  {# Quick Upload #}
+  <div class="quick-upload" id="home-quick-upload">
+    <input type="file" id="home-quick-input" multiple accept="image/*,.pdf" />
+    <div class="quick-upload-icon">⬆️</div>
+    <div class="quick-upload-title">直接拖入文件，自动识别并推荐工具</div>
+    <div class="quick-upload-sub">支持 JPG、PNG、WebP、HEIC、GIF、PDF 等格式</div>
+    <div class="quick-upload-formats">
+      <span class="tag">JPG</span><span class="tag">PNG</span><span class="tag">WebP</span>
+      <span class="tag">HEIC</span><span class="tag">GIF</span><span class="tag">PDF</span><span class="tag">RAW</span>
     </div>
   </div>
-</section>
 
-<section class="section">
-  <div class="container stack-40">
+  {# Category Tabs #}
+  <div class="category-tabs" id="cat-tabs">
+    <button class="cat-tab active" data-cat="all">全部</button>
     {% for group in featured_groups %}
-    <div>
-      <div class="section-head">
-        <div>
-          <span class="eyebrow">{{ group["label"] }}</span>
-          <h2>{{ group["label"] }}</h2>
-        </div>
-        <p>{{ group["description"] }}</p>
-      </div>
-      {% set items = group["items"][:6] %}
-      {% include "partials/tool_cards.html" %}
-    </div>
+    {% set cat = group.key %}
+    <button class="cat-tab" data-cat="{{ cat }}">
+      {{ '📄' if cat == 'pdf' else ('🔄' if cat in ('convert','converters') else ('🗜' if cat == 'compress' else '📐')) }}
+      {{ group.label }}
+    </button>
     {% endfor %}
   </div>
-</section>
+
+  {# Tool sections per category #}
+  {% for group in featured_groups %}
+  {% set cat = group.key %}
+  {% set icon_cls = 'red' if cat == 'pdf' else ('green' if cat in ('convert','converters') else ('amber' if cat == 'compress' else 'blue')) %}
+  <div class="cat-section" data-cat-section="{{ cat }}">
+    <div class="cat-header">
+      <div class="cat-icon {{ icon_cls }}">
+        {{ '📄' if cat == 'pdf' else ('🔄' if cat in ('convert','converters') else ('🗜' if cat == 'compress' else '📐')) }}
+      </div>
+      <span class="cat-name">{{ group.label }}</span>
+      <span class="cat-count">{{ group.items | length }} 个工具</span>
+    </div>
+    {% set items = group.items %}
+    {% include "partials/tool_cards.html" %}
+  </div>
+  {% endfor %}
+
+</div>
+
+<script>
+(function(){
+  // Category tab filter
+  const tabs = document.querySelectorAll('.cat-tab');
+  const sections = document.querySelectorAll('[data-cat-section]');
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.classList.remove('active'); });
+      tab.classList.add('active');
+      var cat = tab.dataset.cat;
+      sections.forEach(function(s){
+        s.style.display = (cat === 'all' || s.dataset.catSection === cat) ? '' : 'none';
+      });
+    });
+  });
+
+  // Quick upload: detect type and redirect
+  var zone = document.getElementById('home-quick-upload');
+  var input = document.getElementById('home-quick-input');
+  var IMG_EXTS = ['jpg','jpeg','png','webp','gif','bmp','tiff','tif','heic','heif','avif','raw','cr2','cr3','dng','nef','arw'];
+  function detect(files){
+    if (!files || !files.length) return;
+    var f = files[0];
+    var ext = f.name.split('.').pop().toLowerCase();
+    if (f.type === 'application/pdf' || ext === 'pdf'){
+      location.href = '/zh-CN/merge-pdf';
+    } else if (IMG_EXTS.indexOf(ext) !== -1){
+      location.href = '/zh-CN/compress';
+    }
+  }
+  zone.addEventListener('dragover', function(e){ e.preventDefault(); zone.style.borderColor = 'var(--accent)'; });
+  zone.addEventListener('dragleave', function(){ zone.style.borderColor = ''; });
+  zone.addEventListener('drop', function(e){ e.preventDefault(); zone.style.borderColor = ''; detect(e.dataTransfer.files); });
+  input.addEventListener('change', function(){ detect(input.files); });
+})();
+</script>
 {% endblock %}
