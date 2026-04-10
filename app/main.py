@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import shutil
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
 import httpx
@@ -65,13 +66,15 @@ async def periodic_cleanup(interval_hours: int = 12) -> None:
         cleanup_old_jobs()
 
 
-app = FastAPI(title=SITE_NAME, description=SITE_DESCRIPTION)
-
-
-@app.on_event("startup")
-async def startup() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI):  # noqa: ARG001
     cleanup_old_jobs()
-    asyncio.create_task(periodic_cleanup())
+    task = asyncio.create_task(periodic_cleanup())
+    yield
+    task.cancel()
+
+
+app = FastAPI(title=SITE_NAME, description=SITE_DESCRIPTION, lifespan=lifespan)
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
