@@ -157,6 +157,9 @@ SERVER_ONLY_SLUGS = {
     "split-pdf",
     "extract-images-from-pdf",
     "delete-pdf-pages",
+    "gif-frames",
+    "image-to-gif",
+    "exif-viewer",
 }
 
 HYBRID_SLUGS = {
@@ -175,6 +178,7 @@ HYBRID_SLUGS = {
     "compress-image-to-20kb",
     "compress-image-to-50kb",
     "compress-image-to-100kb",
+    "image-watermark",
 }
 
 
@@ -192,6 +196,34 @@ def build_features(mode: str) -> list[dict[str, str]]:
             ("批量输出", "多文件同批次处理，统一下载为 ZIP。"),
             ("适合日常素材整理", "适用于电商图片、文章配图、设计交付和运营上传。"),
             ("优先本地处理常见格式", "常用图片会尽量在浏览器内完成，减少等待时间。"),
+        ]
+    elif mode == "image_watermark":
+        items = [
+            ("保护版权", "在图片上添加文字水印，防止未授权传播。"),
+            ("批量处理", "一次上传多张图片，统一添加水印并下载。"),
+            ("参数灵活", "可调整水印文字、位置、透明度和字体大小。"),
+            ("不破坏原图", "生成新文件，原图文件不受影响。"),
+        ]
+    elif mode == "gif_extract":
+        items = [
+            ("逐帧提取", "将 GIF 动画每一帧单独导出为图片文件。"),
+            ("格式可选", "可选择输出为 PNG 或 JPG 格式。"),
+            ("统一下载", "多帧结果打包为 ZIP 一并下载。"),
+            ("适合素材回收", "从动图中提取关键帧用于二次创作。"),
+        ]
+    elif mode == "gif_create":
+        items = [
+            ("多图合成动画", "将多张图片按顺序合成为 GIF 动画。"),
+            ("帧率可调", "控制每帧停留时间，适配不同播放节奏。"),
+            ("格式兼容广", "接受 JPG、PNG、WebP 等常见格式输入。"),
+            ("一键下载", "生成后直接下载 GIF 文件。"),
+        ]
+    elif mode == "image_exif":
+        items = [
+            ("查看完整元数据", "读取相机型号、拍摄时间、GPS 坐标等 EXIF 信息。"),
+            ("保护隐私", "了解图片中是否含有位置或设备信息。"),
+            ("支持批量", "一次查看多张图片的元数据。"),
+            ("清晰展示", "按分类整理 EXIF 字段，便于快速浏览。"),
         ]
     else:
         items = [
@@ -214,6 +246,14 @@ def build_steps(mode: str, title: str) -> list[str]:
         return ["上传图片。", "设置页面尺寸、方向与边距。", "生成 PDF。", "下载合并或拆分结果。"]
     if mode == "pdf_to_image":
         return ["上传 PDF。", "选择图片格式和渲染倍率。", "执行逐页转换。", "下载图片或 ZIP。"]
+    if mode == "image_watermark":
+        return ["上传图片。", "输入水印文字和参数。", "开始处理。", "下载加水印结果。"]
+    if mode == "gif_extract":
+        return ["上传 GIF 动图。", "选择输出格式。", "提取所有帧。", "下载帧图片 ZIP。"]
+    if mode == "gif_create":
+        return ["上传多张图片。", "设置帧延迟（速度）。", "合成 GIF。", "下载动图文件。"]
+    if mode == "image_exif":
+        return ["上传图片。", "点击开始读取元数据。", "查看 EXIF 信息。", "下载 JSON 报告。"]
     return ["上传 PDF。", "输入页码范围或处理规则。", "执行任务。", "下载结果文件。"]
 
 
@@ -275,7 +315,29 @@ def build_faqs(mode: str, title: str) -> list[dict[str, str]]:
             ("原文件会被覆盖吗？", "不会，会生成新的 PDF 下载文件。"),
         ],
     }
-    items = base.get(mode, base["image_convert"])
+    extra = {
+        "image_watermark": [
+            ("水印会覆盖原图吗？", "不会，系统生成新文件，原图不受影响。"),
+            ("支持哪些水印位置？", "支持居中、四角和平铺等多种水印布局。"),
+            ("可以批量处理吗？", "可以，一次上传多张图片统一添加水印。"),
+        ],
+        "gif_extract": [
+            ("会提取所有帧吗？", "会，系统逐帧导出并统一打包。"),
+            ("支持哪些输出格式？", "支持 PNG 和 JPG。"),
+            ("适合哪些场景？", "适合从表情包、动效素材中提取关键帧。"),
+        ],
+        "gif_create": [
+            ("支持哪些输入格式？", "支持 JPG、PNG、WEBP 等常见图片格式。"),
+            ("帧率如何控制？", "通过帧延迟参数（毫秒）控制每帧停留时间。"),
+            ("图片数量有限制吗？", "建议不超过 30 张，以控制文件大小。"),
+        ],
+        "image_exif": [
+            ("会读取 GPS 位置吗？", "如果图片包含 GPS 信息，会显示坐标数据。"),
+            ("支持哪些格式？", "支持 JPG、TIFF 等含 EXIF 元数据的格式。"),
+            ("可以删除 EXIF 信息吗？", "查看工具仅显示信息，不修改文件。"),
+        ],
+    }
+    items = base.get(mode, extra.get(mode, base["image_convert"]))
     result = [{"question": q, "answer": a} for q, a in items]
     result.append({"question": f"{title} 是否免费可用？", "answer": f"是的，{title} 页面可直接使用。"})
     return result
@@ -306,6 +368,14 @@ def build_use_cases(tool: ToolConfig) -> tuple[str, ...]:
         return ("印刷准备", "扫描件整理", "分辨率调整")
     if tool.mode == "pdf_to_image":
         return ("导出页面", "制作缩略图", "提取预览")
+    if tool.mode == "image_watermark":
+        return ("版权保护", "批量打标", "素材标注")
+    if tool.mode == "gif_extract":
+        return ("帧提取", "素材回收", "动效分解")
+    if tool.mode == "gif_create":
+        return ("制作动图", "图片转 GIF", "循环动画")
+    if tool.mode == "image_exif":
+        return ("查看元数据", "隐私检查", "拍摄信息")
     return ("文档整理", "批量处理", "统一下载")
 
 
@@ -744,6 +814,81 @@ def build_core_tools() -> list[ToolConfig]:
             default_options={"page_ranges": "1"},
             ui={"page_ranges": True},
             related_slugs=("split-pdf", "merge-pdf"),
+            badge="New",
+        ),
+        tool(
+            slug="image-watermark",
+            title="图片水印",
+            description="在线批量给图片添加文字水印，保护版权，防止未授权传播。",
+            subtitle="输入水印文字，选择位置和透明度，批量处理后统一下载。",
+            category="convert",
+            mode="image_watermark",
+            icon="©",
+            accept_extensions=COMMON_IMAGE_ACCEPT,
+            output_formats=("jpg", "png", "webp"),
+            default_options={
+                "text": "© Watermark",
+                "position": "center",
+                "opacity": 50,
+                "font_size": 36,
+                "color": "#ffffff",
+                "output_format": "jpg",
+                "quality": 90,
+            },
+            ui={"watermark": True, "format_select": True, "quality": True},
+            related_slugs=("compress", "convert", "exif-viewer"),
+            badge="New",
+        ),
+        tool(
+            slug="gif-frames",
+            title="GIF 帧提取",
+            description="将 GIF 动画逐帧拆分，导出为独立图片文件并打包下载。",
+            subtitle="适合从表情包、动效素材中提取关键帧，用于二次创作或静图分析。",
+            category="convert",
+            mode="gif_extract",
+            icon="▶",
+            fixed_input_formats=("gif",),
+            accept_extensions=FORMAT_EXTENSIONS["gif"],
+            output_formats=("png", "jpg"),
+            default_options={"output_format": "png"},
+            ui={"format_select": True},
+            related_slugs=("gif-compress", "image-to-gif"),
+            badge="New",
+        ),
+        tool(
+            slug="image-to-gif",
+            title="图片合成 GIF",
+            description="将多张 JPG、PNG、WEBP 图片合成为 GIF 动画，可控制帧速度。",
+            subtitle="适合制作简单动图、循环演示和表情包素材。",
+            category="convert",
+            mode="gif_create",
+            icon="GIF",
+            accept_extensions=tuple(dict.fromkeys(
+                ext for fmt in ("jpg", "jpeg", "png", "webp", "bmp")
+                for ext in FORMAT_EXTENSIONS[fmt]
+            )),
+            fixed_output_format="gif",
+            default_options={"frame_delay": 100, "loop": 0},
+            ui={"gif_options": True},
+            related_slugs=("gif-compress", "gif-frames"),
+            max_files=30,
+            badge="New",
+        ),
+        tool(
+            slug="exif-viewer",
+            title="EXIF 查看器",
+            description="读取并展示图片的 EXIF 元数据，包括相机型号、拍摄时间和 GPS 坐标。",
+            subtitle="了解图片中是否包含位置、设备或拍摄参数信息，适合隐私检查和素材管理。",
+            category="convert",
+            mode="image_exif",
+            icon="ℹ",
+            accept_extensions=tuple(dict.fromkeys(
+                ext for fmt in ("jpg", "jpeg", "tiff", "tif", "heic", "heif", "webp", "png")
+                for ext in FORMAT_EXTENSIONS.get(fmt, ())
+            )),
+            default_options={},
+            ui={},
+            related_slugs=("image-watermark", "convert"),
             badge="New",
         ),
     ]

@@ -12,7 +12,8 @@ from uuid import uuid4
 
 import fitz
 import rawpy
-from PIL import Image, ImageOps, ImageSequence, UnidentifiedImageError
+from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageSequence, UnidentifiedImageError
+from PIL.ExifTags import TAGS
 from pillow_heif import register_heif_opener
 
 from app.config import JOBS_DIR
@@ -503,6 +504,120 @@ def delete_pdf_pages(source: SavedInput, output_dir: Path, ranges_raw: str) -> l
     return [target]
 
 
+def process_watermark(source: SavedInput, output_dir: Path, form: dict[str, Any]) -> Path:
+    text = str(form.get("text") or "© Watermark")
+    position = str(form.get("position") or "center")
+    opacity = max(0, min(100, parse_int(form.get("opacity"), default=50)))
+    font_size = max(8, parse_int(form.get("font_size"), default=36))
+    color_hex = str(form.get("color") or "#ffffff").strip()
+    quality = parse_int(form.get("quality"), default=90)
+    output_format = normalize_format(str(form.get("output_format") or "jpg"), fallback="jpg")
+
+    try:
+        r = int(color_hex[1:3], 16)
+        g = int(color_hex[3:5], 16)
+        b = int(color_hex[5:7], 16)
+    except (ValueError, IndexError):
+        r, g, b = 255, 255, 255
+
+    alpha = round(opacity * 255 / 100)
+    image = open_image(source.path).convert("RGBA")
+    overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    try:
+        font: ImageFont.FreeTypeFont | ImageFont.ImageFont = ImageFont.truetype("arial.ttf", font_size)
+    except (OSError, IOError):
+        try:
+            font = ImageFont.load_default(size=font_size)  # type: ignore[call-arg]
+        except TypeError:
+            font = ImageFont.load_default()
+
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_w, text_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    img_w, img_h = image.size
+
+    if position == "tiled":
+        step_x = max(text_w + 80, text_w * 2)
+        step_y = max(text_h + 60, text_h * 2)
+        for ty in range(-step_y, img_h + step_y, step_y):
+            for tx in range(-step_x, img_w + step_x, step_x):
+                draw.text((tx, ty), text, font=font, fill=(r, g, b, alpha))
+    else:
+        offsets = {
+            "center":       ((img_w - text_w) // 2, (img_h - text_h) // 2),
+            "top-left":     (20, 20),
+            "top-right":    (img_w - text_w - 20, 20),
+            "bottom-left":  (20, img_h - text_h - 20),
+            "bottom-right": (img_w - text_w - 20, img_h - text_h - 20),
+        }
+        x, y = offsets.get(position, offsets["center"])
+        draw.text((x, y), text, font=font, fill=(r, g, b, alpha))
+
+    combined = Image.alpha_composite(image, overlay)
+    destination = output_dir / output_name(source.name, output_format)
+    write_image(combined, destination, output_format=output_format, quality=quality)
+    return destination
+
+
+def process_gif_extract(source: SavedInput, output_dir: Path, form: dict[str, Any]) -> list[Path]:
+    output_format = normalize_format(str(form.get("output_format") or "png"), fallback="png")
+    image = Image.open(source.path)
+    outputs: list[Path] = []
+    for index, frame in enumerate(ImageSequence.Iterator(image), start=1):
+        converted = frame.convert("RGBA") if output_format == "png" else frame.convert("RGB")
+        dest = output_dir / f"{Path(source.name).stem}-frame{index:03d}.{output_format}"
+        write_image(converted, dest, output_format=output_format, quality=95)
+        outputs.append(dest)
+    if not outputs:
+        raise ProcessingError("GIF 没有可提取的帧。")
+    return outputs
+
+
+def process_gif_create(sources: list[SavedInput], output_dir: Path, form: dict[str, Any]) -> list[Path]:
+    frame_delay = max(20, parse_int(form.get("frame_delay"), default=100))
+    loop = max(0, parse_int(form.get("loop"), default=0))
+    frames: list[Image.Image] = []
+    for source in sources:
+        img = open_image(source.path)
+        frames.append(img.convert("P", palette=Image.ADAPTIVE, colors=256))
+    if not frames:
+        raise ProcessingError("请上传至少一张图片。")
+    target = output_dir / "animated.gif"
+    frames[0].save(
+        target,
+        format="GIF",
+        save_all=True,
+        append_images=frames[1:],
+        optimize=True,
+        duration=frame_delay,
+        loop=loop,
+    )
+    return [target]
+
+
+def process_exif_viewer(source: SavedInput, output_dir: Path) -> list[Path]:
+    image = open_image(source.path)
+    exif_data: dict[str, Any] = {}
+    try:
+        raw_exif = image.getexif()
+        for tag_id, value in raw_exif.items():
+            tag = TAGS.get(tag_id, str(tag_id))
+            if isinstance(value, bytes):
+                value = value.decode("utf-8", errors="replace")
+            elif not isinstance(value, (str, int, float, bool, type(None))):
+                value = str(value)
+            exif_data[tag] = value
+    except Exception as exc:
+        exif_data["error"] = str(exc)
+    if not exif_data:
+        exif_data["message"] = "该图片没有包含 EXIF 元数据。"
+    result = {"filename": source.name, "exif": exif_data}
+    target = output_dir / f"{Path(source.name).stem}-exif.json"
+    target.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    return [target]
+
+
 def serialize_job(job_id: str, outputs: list[Path], output_dir: Path, inputs: list[SavedInput]) -> dict[str, Any]:
     source_map = {item.name: item for item in inputs}
     items = []
@@ -536,6 +651,17 @@ def process_tool(
     if mode in {"image_compress", "image_convert", "image_resize", "image_target_size", "image_dpi"}:
         for source in saved:
             outputs.append(process_image_mode(mode, source, output_dir, form, fixed_output))
+    elif mode == "image_watermark":
+        for source in saved:
+            outputs.append(process_watermark(source, output_dir, form))
+    elif mode == "gif_extract":
+        for source in saved:
+            outputs.extend(process_gif_extract(source, output_dir, form))
+    elif mode == "gif_create":
+        outputs = process_gif_create(saved, output_dir, form)
+    elif mode == "image_exif":
+        for source in saved:
+            outputs.extend(process_exif_viewer(source, output_dir))
     elif mode == "image_to_pdf":
         outputs = build_pdf_from_images(saved, output_dir, form)
     elif mode == "pdf_to_image":

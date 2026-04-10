@@ -9,7 +9,7 @@
  */
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-const LOCAL_RASTER_EXTS   = new Set(["jpg","jpeg","png","webp","bmp"]);
+const LOCAL_RASTER_EXTS   = new Set(["jpg","jpeg","png","webp","bmp","avif"]);
 const LOCAL_COMPRESS_EXTS = new Set(["jpg","jpeg","webp"]);
 const LOCAL_IMAGE_OUTPUTS = new Set(["jpg","jpeg","png","webp"]);
 
@@ -398,8 +398,10 @@ function renderFileItem(entry, index) {
       `<span>${formatBytes(file.size)}</span><span>→</span>` +
       `<span style="color:var(--green)">✓ ${formatBytes(result.size_bytes)}${pct}</span>`;
     const dlAttr = result.url ? `href="${result.url}" download="${result.name}"` : "";
+    const hasCompare = entry.thumbUrl && result.preview_url;
     statusHtml =
       `<span class="status-chip done">✓ ${_t("完成")}</span>` +
+      (hasCompare ? `<button class="file-action-btn compare-btn" data-index="${index}" title="前后对比">⇔</button>` : "") +
       `<a class="file-action-btn download" ${dlAttr} title="${_t("下载")}">⬇</a>` +
       `<button class="file-action-btn" data-remove="${index}" title="移除">✕</button>`;
 
@@ -457,6 +459,81 @@ function renderQueue() {
       renderQueue();
       updateProcessBtn();
     });
+  });
+
+  // Compare buttons
+  list.querySelectorAll(".compare-btn[data-index]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const i = Number(btn.dataset.index);
+      const entry = queueState[i];
+      if (entry && entry.thumbUrl && entry.result && entry.result.preview_url) {
+        showCompareModal(entry.thumbUrl, entry.result.preview_url, entry.file.name, entry.result.name);
+      }
+    });
+  });
+}
+
+// ── Before/after comparison modal ─────────────────────────────────────────────
+function showCompareModal(beforeUrl, afterUrl, beforeName, afterName) {
+  // Remove any existing modal
+  document.getElementById("compare-modal")?.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "compare-modal";
+  modal.className = "compare-modal";
+  modal.innerHTML = `
+    <div class="compare-backdrop"></div>
+    <div class="compare-dialog">
+      <div class="compare-header">
+        <span>前后对比</span>
+        <button class="compare-close" id="compare-close-btn">✕</button>
+      </div>
+      <div class="compare-body">
+        <div class="compare-wrap" id="compare-wrap">
+          <div class="compare-after-layer">
+            <img src="${afterUrl}" draggable="false" />
+            <span class="compare-label compare-label-right">处理后</span>
+          </div>
+          <div class="compare-before-layer" id="compare-before">
+            <img src="${beforeUrl}" draggable="false" />
+            <span class="compare-label compare-label-left">原图</span>
+          </div>
+          <div class="compare-handle" id="compare-handle">
+            <div class="compare-handle-line"></div>
+            <div class="compare-handle-knob">⇔</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const wrap   = document.getElementById("compare-wrap");
+  const before = document.getElementById("compare-before");
+  const handle = document.getElementById("compare-handle");
+  let pct = 50;
+
+  function setPos(x) {
+    const rect = wrap.getBoundingClientRect();
+    pct = Math.max(2, Math.min(98, (x - rect.left) / rect.width * 100));
+    before.style.width = pct + "%";
+    handle.style.left  = pct + "%";
+  }
+
+  let dragging = false;
+  handle.addEventListener("mousedown",  e => { dragging = true; e.preventDefault(); });
+  wrap.addEventListener("mousedown",    e => { dragging = true; setPos(e.clientX); });
+  document.addEventListener("mousemove", e => { if (dragging) setPos(e.clientX); });
+  document.addEventListener("mouseup",   () => { dragging = false; });
+
+  handle.addEventListener("touchstart",  e => { dragging = true; e.preventDefault(); }, { passive: false });
+  document.addEventListener("touchmove", e => { if (dragging && e.touches[0]) setPos(e.touches[0].clientX); }, { passive: true });
+  document.addEventListener("touchend",  () => { dragging = false; });
+
+  function close() { modal.remove(); }
+  document.getElementById("compare-close-btn").addEventListener("click", close);
+  modal.querySelector(".compare-backdrop").addEventListener("click", close);
+  document.addEventListener("keydown", function onKey(e) {
+    if (e.key === "Escape") { close(); document.removeEventListener("keydown", onKey); }
   });
 }
 
@@ -672,6 +749,17 @@ function initToolWorkspace() {
     e.preventDefault();
     zone.classList.remove("drag-over");
     if (e.dataTransfer && e.dataTransfer.files.length) addFilesToQueue(e.dataTransfer.files);
+  });
+
+  // Clipboard paste (Ctrl+V / Cmd+V)
+  document.addEventListener("paste", e => {
+    if (!toolData) return;
+    const items = Array.from(e.clipboardData.items || []);
+    const files = items
+      .filter(it => it.kind === "file" && it.type.startsWith("image/"))
+      .map(it => it.getAsFile())
+      .filter(Boolean);
+    if (files.length) { e.preventDefault(); addFilesToQueue(files); }
   });
 
   // Process
