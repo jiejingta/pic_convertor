@@ -826,8 +826,7 @@ input[type="range"]::-webkit-slider-thumb {
   pointer-events: none; draggable: false;
 }
 .compare-before-layer {
-  width: 50%;
-  border-right: 2px solid rgba(255,255,255,.8);
+  clip-path: inset(0 50% 0 0);
 }
 .compare-label {
   position: absolute; bottom: 8px;

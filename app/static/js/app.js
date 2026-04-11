@@ -515,21 +515,36 @@ function showCompareModal(beforeUrl, afterUrl, beforeName, afterName) {
   function setPos(x) {
     const rect = wrap.getBoundingClientRect();
     pct = Math.max(2, Math.min(98, (x - rect.left) / rect.width * 100));
-    before.style.width = pct + "%";
-    handle.style.left  = pct + "%";
+    // clip-path: reveal left `pct`% of the before image
+    before.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+    handle.style.left = pct + "%";
   }
+  // Set initial position
+  setPos(wrap.getBoundingClientRect().left + wrap.getBoundingClientRect().width * 0.5);
 
   let dragging = false;
-  handle.addEventListener("mousedown",  e => { dragging = true; e.preventDefault(); });
-  wrap.addEventListener("mousedown",    e => { dragging = true; setPos(e.clientX); });
-  document.addEventListener("mousemove", e => { if (dragging) setPos(e.clientX); });
-  document.addEventListener("mouseup",   () => { dragging = false; });
 
-  handle.addEventListener("touchstart",  e => { dragging = true; e.preventDefault(); }, { passive: false });
-  document.addEventListener("touchmove", e => { if (dragging && e.touches[0]) setPos(e.touches[0].clientX); }, { passive: true });
-  document.addEventListener("touchend",  () => { dragging = false; });
+  const onMouseMove = e => { if (dragging) setPos(e.clientX); };
+  const onMouseUp   = () => { dragging = false; };
+  const onTouchMove = e => { if (dragging && e.touches[0]) setPos(e.touches[0].clientX); };
+  const onTouchEnd  = () => { dragging = false; };
 
-  function close() { modal.remove(); }
+  handle.addEventListener("mousedown", e => { dragging = true; e.preventDefault(); });
+  wrap.addEventListener("mousedown",   e => { dragging = true; setPos(e.clientX); });
+  document.addEventListener("mousemove", onMouseMove);
+  document.addEventListener("mouseup",   onMouseUp);
+
+  handle.addEventListener("touchstart", e => { dragging = true; e.preventDefault(); }, { passive: false });
+  document.addEventListener("touchmove", onTouchMove, { passive: true });
+  document.addEventListener("touchend",  onTouchEnd);
+
+  function close() {
+    document.removeEventListener("mousemove", onMouseMove);
+    document.removeEventListener("mouseup",   onMouseUp);
+    document.removeEventListener("touchmove", onTouchMove);
+    document.removeEventListener("touchend",  onTouchEnd);
+    modal.remove();
+  }
   document.getElementById("compare-close-btn").addEventListener("click", close);
   modal.querySelector(".compare-backdrop").addEventListener("click", close);
   document.addEventListener("keydown", function onKey(e) {
