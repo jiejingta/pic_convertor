@@ -402,7 +402,7 @@ function renderFileItem(entry, index) {
     statusHtml =
       `<span class="status-chip done">✓ ${_t("完成")}</span>` +
       (hasCompare ? `<button class="file-action-btn compare-btn" data-index="${index}" title="前后对比">⇔</button>` : "") +
-      `<a class="file-action-btn download" ${dlAttr} title="${_t("下载")}">⬇</a>` +
+      `<a class="file-action-btn download" ${dlAttr} title="${_t("下载")}" onclick="window.umami?.track('download_single',{tool:'${(toolData||{}).slug||''}',file:'${result.name}'})">⬇</a>` +
       `<button class="file-action-btn" data-remove="${index}" title="移除">✕</button>`;
 
   } else if (state === "error") {
@@ -582,6 +582,7 @@ function updateResultBar() {
   document.getElementById("dl-all-btn")?.addEventListener("click", async () => {
     const btn = document.getElementById("dl-all-btn");
     if (btn) { btn.textContent = "⏳ 打包中…"; btn.disabled = true; }
+    window.umami?.track("download_zip", { tool: toolData?.slug || "unknown", count: done.length });
     try {
       const zip = new window.JSZip();
       done.forEach(e => { if (e.result.blob) zip.file(e.result.name, e.result.blob); });
@@ -593,6 +594,11 @@ function updateResultBar() {
     } finally {
       if (btn) { btn.textContent = `⬇ ${_t("打包下载")}`; btn.disabled = false; }
     }
+  });
+
+  // 结果栏单文件下载链接（done.length === 1 时渲染的 <a>）
+  bar.querySelector(".download-all-btn[download]")?.addEventListener("click", () => {
+    window.umami?.track("download_single", { tool: toolData?.slug || "unknown" });
   });
 }
 
@@ -778,7 +784,10 @@ function initToolWorkspace() {
   });
 
   // Process
-  processBtn?.addEventListener("click", () => { processFiles(); });
+  processBtn?.addEventListener("click", () => {
+    window.umami?.track("process_start", { tool: toolData?.slug || "unknown" });
+    processFiles();
+  });
 
   // Clear
   clearBtn?.addEventListener("click", () => {
