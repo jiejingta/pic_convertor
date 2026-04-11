@@ -39,7 +39,49 @@ from app.tool_registry import (
 )
 
 FAVICON_PATH = STATIC_DIR / "favicon.svg"
+OG_IMAGE_PATH = STATIC_DIR / "images" / "og-default.png"
 JOB_MAX_AGE_DAYS = 7
+
+
+def ensure_og_image() -> None:
+    """Generate a branded 1200×630 OG image if it doesn't already exist."""
+    if OG_IMAGE_PATH.exists():
+        return
+    try:
+        from PIL import Image, ImageDraw, ImageFont  # type: ignore
+
+        OG_IMAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        w, h = 1200, 630
+        img = Image.new("RGB", (w, h), "#1a1a2e")
+        draw = ImageDraw.Draw(img)
+
+        # Accent bar
+        draw.rectangle([(0, 0), (w, 8)], fill="#6c63ff")
+
+        # Try to use a bundled font; fall back to default
+        try:
+            font_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 96)
+            font_sub = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 42)
+        except OSError:
+            font_title = ImageFont.load_default()
+            font_sub = font_title
+
+        title_text = "墨图工坊"
+        sub_text = "在线处理图片与 PDF 的轻量工具站"
+
+        # Center title
+        bbox = draw.textbbox((0, 0), title_text, font=font_title)
+        tw = bbox[2] - bbox[0]
+        draw.text(((w - tw) / 2, 220), title_text, font=font_title, fill="#ffffff")
+
+        # Center subtitle
+        bbox2 = draw.textbbox((0, 0), sub_text, font=font_sub)
+        sw = bbox2[2] - bbox2[0]
+        draw.text(((w - sw) / 2, 370), sub_text, font=font_sub, fill="#a0a0c0")
+
+        img.save(OG_IMAGE_PATH, "PNG", optimize=True)
+    except Exception:
+        pass  # Non-critical; site works fine without it
 
 
 def cleanup_old_jobs() -> int:
@@ -69,6 +111,7 @@ async def periodic_cleanup(interval_hours: int = 12) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ARG001
     cleanup_old_jobs()
+    ensure_og_image()
     task = asyncio.create_task(periodic_cleanup())
     yield
     task.cancel()
@@ -86,6 +129,7 @@ def base_page(*, site_url: str, title: str, description: str, path: str, schemas
         "title": title,
         "description": description,
         "canonical": canonical(site_url, path),
+        "og_image": f"{site_url}/static/images/og-default.png",
         "path": path,
         "site_name": SITE_NAME,
         "site_tagline": SITE_TAGLINE,

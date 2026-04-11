@@ -36,7 +36,7 @@ class ToolConfig:
     def to_payload(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["nav_title"] = self.nav_title or self.title
-        payload["meta_title"] = f"{self.title} - 免费在线工具 | {SITE_NAME}"
+        payload["meta_title"] = f"{self.title} 在线 | {SITE_NAME}"
         base_description = self.description.rstrip("。.!！?？")
         payload["meta_description"] = (
             f"{base_description}。支持批量处理、文件预览、清晰的结果下载和常见问题说明。"
@@ -265,9 +265,10 @@ def build_faqs(mode: str, title: str) -> list[dict[str, str]]:
             ("适合哪些场景？", "适合网站资源、电商主图、文章配图和社媒素材压缩。"),
         ],
         "image_target_size": [
-            ("可以压到指定 KB 吗？", "会尽量逼近目标大小，并在合理范围内自动调整质量。"),
-            ("多张图片也能一起处理吗？", "可以，系统会对每张图分别执行目标体积压缩。"),
-            ("如果目标很极限怎么办？", "会必要时结合质量与尺寸回退策略继续尝试。"),
+            ("证件照或报名照怎么压缩到指定 KB？", "上传图片并设定目标大小，系统自动调整质量逼近目标，无需手动反复尝试。"),
+            ("考试报名要求图片不超过 20KB / 50KB，怎么处理？", "选择对应目标大小的页面上传，处理后直接下载，支持批量操作。"),
+            ("多张图片能一起处理吗？", "支持，每张图分别逼近目标体积后统一打包下载。"),
+            ("压缩到极限还是超了怎么办？", "系统会综合调整质量与尺寸，确保输出文件不超过目标大小。"),
         ],
         "image_convert": [
             ("支持批量转换吗？", "支持，多张图片会按同一输出格式统一处理。"),
