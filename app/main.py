@@ -163,7 +163,7 @@ async def favicon() -> FileResponse:
 
 @app.get("/baidu_verify_codeva-0A2u2r4LhB.html", include_in_schema=False)
 async def baidu_verify() -> PlainTextResponse:
-    return PlainTextResponse("baidu_verify_codeva-0A2u2r4LhB")
+    return PlainTextResponse("1c8b8620ead6942e8a2130abcca2ef34")
 
 
 @app.get("/zh-CN", response_class=HTMLResponse)
