@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.config import BAIDU_PUSH_TOKEN, JOBS_DIR, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, STATIC_DIR, TEMPLATES_DIR
+from app.config import JOBS_DIR, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, STATIC_DIR, TEMPLATES_DIR
 from app.services.processor import ProcessingError, process_tool
 from app.seo import (
     breadcrumb_schema,
@@ -108,17 +108,17 @@ async def periodic_cleanup(interval_hours: int = 12) -> None:
         cleanup_old_jobs()
 
 
-async def baidu_push_urls(site_url: str) -> None:
+BAIDU_PUSH_API = "http://data.zz.baidu.com/urls?site=https://convert.steampan.cn&token=iM71SVjBPsa3mvJe"
+BAIDU_PUSH_SITE = "https://convert.steampan.cn"
+
+
+async def baidu_push_urls() -> None:
     """Push all tool page URLs to Baidu active indexing API on startup."""
-    if not BAIDU_PUSH_TOKEN:
-        return
-    domain = site_url.rstrip("/").replace("https://", "").replace("http://", "")
-    api = f"http://data.zz.baidu.com/urls?site={domain}&token={BAIDU_PUSH_TOKEN}"
-    urls = [f"{site_url}/zh-CN"] + [f"{site_url}/zh-CN/{t.slug}" for t in all_tools()]
+    urls = [f"{BAIDU_PUSH_SITE}/zh-CN"] + [f"{BAIDU_PUSH_SITE}/zh-CN/{t.slug}" for t in all_tools()]
     body = "\n".join(urls)
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            await client.post(api, content=body, headers={"Content-Type": "text/plain"})
+            await client.post(BAIDU_PUSH_API, content=body, headers={"Content-Type": "text/plain"})
     except Exception:
         pass  # Non-critical
 
@@ -129,12 +129,7 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     ensure_og_image()
     task = asyncio.create_task(periodic_cleanup())
     # Delay Baidu push slightly so site_url is resolvable via first request
-    asyncio.create_task(
-        baidu_push_urls(
-            __import__("app.config", fromlist=["SITE_URL"]).SITE_URL
-            or "https://convert.steampan.cn"
-        )
-    )
+    asyncio.create_task(baidu_push_urls())
     yield
     task.cancel()
 
