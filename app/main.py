@@ -161,6 +161,11 @@ async def favicon() -> FileResponse:
     return FileResponse(FAVICON_PATH, media_type="image/svg+xml")
 
 
+@app.get("/baidu_verify_codeva-0A2u2r4LhB.html", include_in_schema=False)
+async def baidu_verify() -> PlainTextResponse:
+    return PlainTextResponse("baidu_verify_codeva-0A2u2r4LhB")
+
+
 @app.get("/zh-CN", response_class=HTMLResponse)
 async def home(request: Request) -> HTMLResponse:
     path = "/zh-CN"
