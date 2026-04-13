@@ -183,6 +183,11 @@ async def baidu_verify() -> PlainTextResponse:
     return PlainTextResponse("1c8b8620ead6942e8a2130abcca2ef34")
 
 
+@app.get("/bda4d0dc6edd9060f162dc3799c77658.txt", include_in_schema=False)
+async def weixin_verify() -> PlainTextResponse:
+    return PlainTextResponse("cbd2e4b13795f7c1d8c2fa8e8fd826698a41cdcd")
+
+
 @app.get("/zh-CN", response_class=HTMLResponse)
 async def home(request: Request) -> HTMLResponse:
     path = "/zh-CN"
